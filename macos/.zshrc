@@ -20,10 +20,6 @@ setopt HIST_FCNTL_LOCK
 # -------------------------
 # Plugins
 # -------------------------
-
-# Zoxide (better cd)
-# eval "$(zoxide init zsh)"
-
 # Autosuggestions
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
@@ -40,6 +36,11 @@ source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 bindkey "^[b" backward-word      # Alt+B = jump back one word
 bindkey "^[f" forward-word       # Alt+F = jump forward one word
 bindkey "^[d" kill-word          # Alt+D = delete next word
+
+# Search history based on current input
+bindkey '^[[A' history-search-backward
+bindkey '^[[B' history-search-forward
+
 # Make Zsh treat / as a word separator (like bash)
 WORDCHARS='*?_[]~=&;!#$%^(){}<>'
 
@@ -48,18 +49,15 @@ WORDCHARS='*?_[]~=&;!#$%^(){}<>'
 # Aliases
 # -------------------------
 alias c="clear"
-alias cls="clear"
 
-# alias ls="ls -G"
-alias lsa="ls -lAhF"
 alias ls="eza"
-alias l="eza -lAh --group-directories-first"
+alias lsa="ls -lAhF"
+alias l="ls -lAhF -G --group-directories-first"
 
-alias gl="git log --graph"
 alias gs="git status"
+alias gd="git diff"
+alias gl="git log --graph"
 alias gl1="git log --graph --oneline --decorate --all"
-
-# fancy ls list, colored, sorted by name etc
 
 # colored folder and exe files in tree, use tree -L 3 for 3 levels
 alias tree="tree -C"
@@ -76,7 +74,6 @@ ta() {
         tmux attach -t "$session"
     fi
 }
-
 tk() {
     if [ -n "$TMUX" ]; then
         tmux kill-session -t "$(tmux display-message -p '#S')"
@@ -96,18 +93,10 @@ compinit
 # behave like Bash: complete if unique, list on double TAB
 unsetopt MENU_COMPLETE         # no cycling
 unsetopt AUTO_MENU             # don't auto-select
-# unsetopt AUTO_LIST             # only list on 2nd TAB
 setopt COMPLETE_IN_WORD        # bash-style behavior
-
-# show only matching items (not everything)
-# zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' \
-#                                    'r:|[.]=* r:|=*'
 
 # show colored matches (LS_COLORS)
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-
-# keep groups simple
-zstyle ':completion:*' group-name ''
 
 # TAB does: try-complete on 1st press, list on 2nd
 bindkey '^I' complete-word
