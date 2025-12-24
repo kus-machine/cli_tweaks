@@ -16,6 +16,11 @@ Install all tools and plugins used in .zshrc.
 brew install eza tree tmux zsh-autosuggestions zsh-syntax-highlighting fzf zoxide
 ```
 
+#### Additionally, install tools:
+```
+brew install bat tree
+```
+
 ### 3. Configure FZF
 Generate the required ***~/.fzf.zsh*** keybindings file.
 

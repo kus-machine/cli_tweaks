@@ -58,10 +58,13 @@ alias gs="git status"
 alias gd="git diff"
 alias gl="git log --graph"
 alias gl1="git log --graph --oneline --decorate --all"
+# TODO: add git macro to git config instead of aliases
 
-# colored folder and exe files in tree, use tree -L 3 for 3 levels
-alias tree="tree -C"
-alias treef="tree -C -F"
+alias tree="tree -C -F"
+alias tr1="tree -L 1"
+alias tr2="tree -L 2"
+alias tr3="tree -L 3"
+alias tr4="tree -L 4"
 
 # tmux shortcuts
 alias t="tmux"
