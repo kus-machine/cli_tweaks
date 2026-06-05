@@ -1,16 +1,36 @@
-# some more ls aliases
-alias ll='ls -alF'
-alias la='ls -AlhF'
-alias l='ls -lAhF --group-directories-first  --color=auto'
-
 alias gs='git status'
 
-alias tree="tree -C -F"
-alias tr1="tree -L 1"
-alias tr2="tree -L 2"
-alias tr3="tree -L 3"
-alias tr4="tree -L 4"
+# some more ls aliases
+# alias ll='ls -alF'
+# alias la='ls -AlhF'
+# alias l='ls -lAhF --group-directories-first  --color=auto'
 
+# eza is colored ls with icons
+alias ls='eza --icons=always --group-directories-first'
+alias l='eza -AlhF --icons=always --group-directories-first'
+alias tree='eza --tree --icons=always'
+
+
+# tr 5 means tree -L 5
+tr() {
+    if [ $# -eq 0 ]; then
+        tree
+    elif [[ $1 =~ ^[0-9]+$ ]]; then
+        tree -L "$1"
+    else
+        echo "Usage: tr [depth]"
+        return 1
+    fi
+}
+
+
+# powerful easy find across every possible folder
+fin() {
+    sudo find / -iname "*$1*" 2>/dev/null
+}
+
+alias top="btop"
+alias htop="btop"
 
 # tmux aliases
 alias t="tmux"

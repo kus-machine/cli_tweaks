@@ -77,11 +77,16 @@ esac
 #export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
 
-# fzf backend configuration
 # fzf backend configuration (ignoring .git, .vscode, and .cache)
-export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --exclude .git --exclude .vscode --exclude .cache'
+EXCLUDES=(.git .vscode .vscode-shared .cache .config .local)
+FDFIND_EXCLUDES=""
+for dir in "${EXCLUDES[@]}"; do
+    FDFIND_EXCLUDES+=" --exclude $dir"
+done
+
+export FZF_DEFAULT_COMMAND="fdfind --type f --hidden$FDFIND_EXCLUDES"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_ALT_C_COMMAND='fdfind --type d --hidden --exclude .git --exclude .vscode --exclude .cache'
+export FZF_ALT_C_COMMAND="fdfind --type d --hidden$FDFIND_EXCLUDES"
 
 # Enable fzf keybindings (Ubuntu 24.04 apt installation)
 if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
