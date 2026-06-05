@@ -1,0 +1,104 @@
+###################################
+# Basic Prompt Look
+###################################
+
+# The order of things before the cursor
+format = """
+$username@$hostname\
+ $directory\
+ $line_break\
+ $git_branch$git_status\
+ $line_break $character
+"""
+
+# New line between prompt and command
+add_newline = true
+
+
+
+###################################
+# Username
+###################################
+[username]
+# Always show username (useful if you use SSH or multiple users)
+show_always = true
+style_user = "bold green"
+style_root = "bold red"
+format = "[$user]($style)"
+
+
+
+###################################
+# Hostname
+###################################
+[hostname]
+ssh_only = false          # Show always (or true = only when SSH)
+format = "[@$hostname](blue) "
+
+
+
+###################################
+# Directory
+###################################
+[directory]
+# Show full path (false = default, shorten with special chars)
+truncate_to_repo = false
+truncation_length = 0       # 0 = show full path
+style = "cyan bold"
+read_only = " 🔒"
+format = "[$path]($style)[$read_only]($style) "
+
+
+
+###################################
+# Git Branch
+###################################
+[git_branch]
+format = "[$branch](yellow) "
+symbol = "🌱 "              # Remove if you don't want emoji
+truncation_length = 50
+
+
+
+###################################
+# Git Status
+###################################
+[git_status]
+format = '([\[$all_status$ahead_behind\]](red)) '
+
+
+
+###################################
+# Python
+###################################
+[python]
+symbol = "🐍 "
+format = "[$symbol$version]($style) "
+
+
+
+###################################
+# Command Duration
+###################################
+[cmd_duration]
+min_time = 2000            # Only show if command > 2s
+format = "took [$duration](bold yellow) "
+
+
+
+###################################
+# Current Time
+###################################
+[time]
+disabled = false
+time_format = "%H:%M"
+format = "at [$time](purple) "
+
+
+
+###################################
+# Prompt Symbol (➜)
+###################################
+[character]
+success_symbol = "[▸](bold green)"
+error_symbol = "[▸](bold red)"
