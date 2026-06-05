@@ -64,7 +64,8 @@ truncation_length = 50
 # Git Status
 ###################################
 [git_status]
-format = '([\[$all_status$ahead_behind\]](red)) '
+format = '([$all_status$ahead_behind]($style) )'
+style = "bold red"
 
 
 
@@ -73,8 +74,7 @@ format = '([\[$all_status$ahead_behind\]](red)) '
 ###################################
 [python]
 symbol = "🐍 "
-format = "[$symbol$version]($style) "
-
+format = '[${symbol}${version}( \($virtualenv\))]($style) '
 
 
 ###################################
@@ -102,3 +102,27 @@ format = "at [$time](purple) "
 [character]
 success_symbol = "[▸](bold green)"
 error_symbol = "[▸](bold red)"
+
+
+###################################
+# Exit Status Code
+###################################
+[status]
+disabled = false
+format = '\[[$symbol$status]($style)\] '
+style = "bold red"
+symbol = "💥 "
+
+###################################
+# C / C++ 
+###################################
+[c]
+symbol = "C++ "
+style = "bold blue"
+
+###################################
+# CMake
+###################################
+[cmake]
+symbol = "🛠️ "
+style = "bold green"

@@ -76,8 +76,22 @@ esac
 # colored GCC warnings and errors
 #export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
-# Enable fzf tab completion
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+
+# fzf backend configuration
+# fzf backend configuration (ignoring .git, .vscode, and .cache)
+export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --exclude .git --exclude .vscode --exclude .cache'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND='fdfind --type d --hidden --exclude .git --exclude .vscode --exclude .cache'
+
+# Enable fzf keybindings (Ubuntu 24.04 apt installation)
+if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
+    source /usr/share/doc/fzf/examples/key-bindings.bash
+fi
+
+# Enable fzf completion (Debian/Ubuntu specific path)
+if [ -f /usr/share/bash-completion/completions/fzf ]; then
+    source /usr/share/bash-completion/completions/fzf
+fi
 
 
 if [ -f ~/.bash_aliases ]; then

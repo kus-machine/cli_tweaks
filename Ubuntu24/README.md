@@ -8,8 +8,8 @@ This repository contains my personal configuration files for Bash, Tmux, and Sta
 ### 1. Install Dependencies
 First, update the system and install the required packages (`curl`, `git`, `tmux`, `tree`, and `fzf`):
 ```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install curl git tmux tree fzf -y
+sudo apt update
+sudo apt install curl git tmux tree fzf fd-find ripgrep -y
 
 ```
 
@@ -18,13 +18,13 @@ sudo apt install curl git tmux tree fzf -y
 Install the Starship cross-shell prompt:
 
 ```bash
-curl -sS [https://starship.rs/install.sh](https://starship.rs/install.sh) | sh
+curl -sS https://starship.rs/install.sh | sh
 
 ```
 
 ### 3. Clone This Repository
 
-Clone these dotfiles to your local machine (assuming you are cloning to `~/dotfiles`):
+Clone these dotfiles to your local machine:
 
 ```bash
 git clone https://github.com/kus-machine/cli_tweaks.git
@@ -37,8 +37,8 @@ Back up your default `.bashrc` just in case, then copy the new configs to their 
 
 ```bash
 # Backup default bashrc
-mv .bashrc ~/.bashrc.bak
-mv .bash_aliases ~/.bash_aliases.bak
+mv ~/.bashrc ~/.bashrc.bak
+mv ~/.bash_aliases ~/.bash_aliases.bak
 
 # Copy Bash and Tmux configs
 cp .bashrc ~/.bashrc
