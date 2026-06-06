@@ -6,21 +6,51 @@ alias gs='git status'
 # alias l='ls -lAhF --group-directories-first  --color=auto'
 
 # eza is colored ls with icons
-alias ls='eza --icons=always --group-directories-first'
 alias l='eza -AlhF --icons=always --group-directories-first'
+alias la='eza -AlhF --icons=always --group-directories-first  --total-size'
+# other colors for size:
+# alias l='eza -AlhF --icons=always --group-directories-first --total-size --color-scale=all'
+alias lss="eza -AlhF --icons=always --group-directories-first --total-size --sort=size --reverse"
+
 alias tree='eza --tree --icons=always'
 
 
 # tr 5 means tree -L 5
 tr() {
-    if [ $# -eq 0 ]; then
-        tree
-    elif [[ $1 =~ ^[0-9]+$ ]]; then
-        tree -L "$1"
-    else
-        echo "Usage: tr [depth]"
-        return 1
-    fi
+    case $# in
+        0)
+            tree
+            ;;
+        1)
+            if [[ $1 =~ ^[0-9]+$ ]]; then
+                tree -L "$1"
+            else
+                tree "$1"
+            fi
+            ;;
+        2)
+            if [[ $1 =~ ^[0-9]+$ ]]; then
+                tree -L "$1" "$2"
+            else
+                echo "Usage: tr [depth] [path]"
+                echo "Examples:"
+                echo "  tr"
+                echo "  tr 3"
+                echo "  tr /"
+                echo "  tr 3 /"
+                return 1
+            fi
+            ;;
+        *)
+            echo "Usage: tr [depth] [path]"
+            echo "Examples:"
+            echo "  tr"
+            echo "  tr 3"
+            echo "  tr /"
+            echo "  tr 3 /"
+            return 1
+            ;;
+    esac
 }
 
 
