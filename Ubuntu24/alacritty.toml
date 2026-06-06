@@ -1,0 +1,48 @@
+[window]
+# True background transparency (0.0 is fully transparent, 1.0 is opaque)
+opacity = 0.9
+
+# Adds nice breathing room around the edges of the window
+padding = { x = 12, y = 12 }
+dynamic_padding = true
+
+# Hides the ugly title bar for a cleaner look (optional)
+# decorations = "none" 
+
+[font]
+# Points to the Nerd Font so eza and Starship icons render perfectly
+normal = { family = "FiraCode Nerd Font", style = "Regular" }
+bold = { family = "FiraCode Nerd Font", style = "Bold" }
+italic = { family = "FiraCode Nerd Font", style = "Italic" }
+size = 11.5
+
+[cursor]
+style = { shape = "Beam", blinking = "On" }
+
+[scrolling]
+history = 50000
+
+# Modern "Tokyo Night" Color Scheme
+[colors.primary]
+background = "#1a1b26"
+foreground = "#c0caf5"
+
+[colors.normal]
+black   = "#15161e"
+red     = "#f7768e"
+green   = "#9ece6a"
+yellow  = "#e0af68"
+blue    = "#7aa2f7"
+magenta = "#bb9af7"
+cyan    = "#7dcfff"
+white   = "#a9b1d6"
+
+[colors.bright]
+black   = "#414868"
+red     = "#f7768e"
+green   = "#9ece6a"
+yellow  = "#e0af68"
+blue    = "#7aa2f7"
+magenta = "#bb9af7"
+cyan    = "#7dcfff"
+white   = "#c0caf5"
