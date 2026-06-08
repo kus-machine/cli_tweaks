@@ -8,7 +8,7 @@ $username@$hostname\
  $directory\
  $line_break\
  $git_branch$git_status\
- $line_break $character
+ $line_break $python$character
 """
 
 # New line between prompt and command
@@ -33,7 +33,7 @@ format = "[$user]($style)"
 ###################################
 [hostname]
 ssh_only = false          # Show always (or true = only when SSH)
-format = "[@$hostname](blue) "
+format = "[$hostname](blue) "
 
 
 
@@ -74,7 +74,11 @@ style = "bold red"
 ###################################
 [python]
 symbol = "🐍 "
-format = '[${symbol}${version}( \($virtualenv\))]($style) '
+format = '[$symbol$version( \($virtualenv\))]($style) '
+
+detect_extensions = []
+detect_files = []
+detect_folders = []
 
 
 ###################################
@@ -112,17 +116,3 @@ disabled = false
 format = '\[[$symbol$status]($style)\] '
 style = "bold red"
 symbol = "💥 "
-
-###################################
-# C / C++ 
-###################################
-[c]
-symbol = "C++ "
-style = "bold blue"
-
-###################################
-# CMake
-###################################
-[cmake]
-symbol = "🛠️ "
-style = "bold green"
