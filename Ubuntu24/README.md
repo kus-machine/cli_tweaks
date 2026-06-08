@@ -1,102 +1,142 @@
+# Ubuntu 24 CLI Tweaks
 
-# My Ubuntu 24 cli tweaks
+Personal Ubuntu terminal setup including:
 
-This repository contains my personal configuration files for Bash, Tmux, and Starship.
+- Bash improvements
+- Tmux configuration
+- Starship prompt
+- Alacritty configuration
+- Nerd Fonts
+- Common CLI utilities
 
-## Quick Install on a Fresh Ubuntu 24
-
-### Install Dependencies
-First, update the system and install the required packages (`curl`, `git`, `tmux`, `tree`, and `fzf`):
-```bash
-sudo apt update
-sudo apt install curl git tmux eza tree fzf fd-find ripgrep btop -y
-
-```
-
-### Install icons for eza:
-```bash
-mkdir -p ~/.local/share/fonts
-wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
-unzip FiraCode.zip -d ~/.local/share/fonts/
-fc-cache -fv
-rm FiraCode.zip
-```
-
-### Install Starship
-
-Install the Starship cross-shell prompt:
-
-```bash
-curl -sS https://starship.rs/install.sh | sh
-
-```
-
-### Clone This Repository
-
-Clone these dotfiles to your local machine:
+## Clone Repository
 
 ```bash
 git clone https://github.com/kus-machine/cli_tweaks.git
-cd Ubuntu24
+cd cli_tweaks
+
+chmod +x install.sh
+chmod +x scripts/*.sh
 ```
 
-### Deploy the Configurations
+## Available Components
 
-Back up your default `.bashrc` just in case, then copy the new configs to their proper locations:
+### --packages
+
+Installs useful command-line tools:
+
+- git
+- tmux
+- eza
+- tree
+- fzf
+- fd
+- ripgrep
+- btop
 
 ```bash
-# Backup default bashrc
-mv ~/.bashrc ~/.bashrc.bak
-mv ~/.bash_aliases ~/.bash_aliases.bak
-
-# Copy Bash and Tmux configs
-cp .bashrc ~/.bashrc
-cp .bash_aliases ~/.bash_aliases
-cp .tmux.conf ~/.tmux.conf
-
-# Create the config directory for Starship and copy the toml file
-mkdir -p ~/.config
-cp starship.toml ~/.config/starship.toml
-
+./install.sh --packages
 ```
 
-### Apply Changes
+---
 
-Reload your bash configuration to apply everything:
+### --fonts
+
+Installs FiraCode Nerd Font required for icons and enhanced terminal rendering.
+
+```bash
+./install.sh --fonts
+```
+
+---
+
+### --configs
+
+Installs:
+
+- .bashrc
+- .bash_aliases
+- .tmux.conf
+
+Existing files are automatically backed up with timestamps.
+
+```bash
+./install.sh --configs
+```
+
+---
+
+### --starship
+
+Installs:
+
+- Starship prompt
+- starship.toml configuration
+
+Provides:
+
+- Git status
+- Runtime versions
+- Compact modern prompt
+
+```bash
+./install.sh --starship
+```
+
+---
+
+### --alacritty
+
+Installs:
+
+- Alacritty terminal
+- Alacritty configuration
+
+Provides:
+
+- GPU accelerated terminal
+- Transparency
+- Modern rendering
+
+```bash
+./install.sh --alacritty
+```
+
+---
+
+## Install Everything
+
+```bash
+./install.sh --all
+```
+
+This installs:
+
+- CLI packages
+- Nerd Fonts
+- Bash configuration
+- Tmux configuration
+- Starship
+- Alacritty
+
+---
+
+## Combine Features
+
+Examples:
+
+```bash
+./install.sh --packages --starship
+
+./install.sh --fonts --starship --configs
+
+./install.sh --alacritty --configs
+```
+
+---
+
+## Activate Bash Changes
 
 ```bash
 source ~/.bashrc
 ```
-
-Your terminal should now be fully configured!
-
-
-
-
-### Optional: Install & Configure **Alacritty** Terminal
-
-If you want a fast, GPU-accelerated terminal with native transparency, you can install Alacritty.
-
-**1. Install Alacritty:**
-
-```bash
-sudo apt install alacritty -y
-```
-
-**2. Set as System Default:**
-Run the following command and enter the selection number for `/usr/bin/alacritty` to make it your default terminal:
-
-```bash
-sudo update-alternatives --config x-terminal-emulator
-```
-
-**3. Deploy the Configuration:**
-Copy the provided configuration file from this repository to your system:
-
-```bash
-mkdir -p ~/.config/alacritty
-cp alacritty.toml ~/.config/alacritty/alacritty.toml
-```
-
-**4. Customize:**
-Open `~/.config/alacritty/alacritty.toml` in your preferred text editor to modify the configuration. You can adjust settings like background opacity (`opacity = 0.85`), colors, and font sizes. Changes will apply automatically the moment you save the file.
