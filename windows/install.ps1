@@ -211,13 +211,16 @@ if ($All -or $Packages) {
         $pwshProfile = & $pwshPath -NoProfile -Command '$PROFILE.CurrentUserAllHosts'
         $modDir = Join-Path (Split-Path $pwshProfile) 'Modules'
         New-Item -ItemType Directory -Force -Path $modDir | Out-Null
-        if (Test-Path (Join-Path $modDir 'PSFzf')) {
-            Write-Host "  PSFzf already present in pwsh7 scope." -ForegroundColor DarkGray
-        } else {
-            Write-Host "  PSFzf module -> $modDir" -ForegroundColor Cyan
-            Save-Module -Name PSFzf -Path $modDir -Force
+        # PSFzf = fzf keybindings; posh-git = git tab completion.
+        foreach ($mod in @('PSFzf', 'posh-git')) {
+            if (Test-Path (Join-Path $modDir $mod)) {
+                Write-Host "  $mod already present in pwsh7 scope." -ForegroundColor DarkGray
+            } else {
+                Write-Host "  $mod module -> $modDir" -ForegroundColor Cyan
+                Save-Module -Name $mod -Path $modDir -Force
+            }
+            Register-Module $mod (Join-Path $modDir $mod)
         }
-        Register-Module 'PSFzf' (Join-Path $modDir 'PSFzf')
     } else {
         Write-Host "  pwsh7 not found. Run './install.ps1 -Shell' first, then re-run '-Packages'." -ForegroundColor DarkYellow
     }

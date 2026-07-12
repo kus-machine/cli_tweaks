@@ -22,7 +22,7 @@ application" — that stays opt-in (see below).
 | Flag | Does |
 |------|------|
 | `-Shell` | Install PowerShell 7 (`Microsoft.PowerShell`) |
-| `-Packages` | fzf, fd, eza, zoxide, ripgrep, bat, btop4win + the PSFzf module (into pwsh7's scope) |
+| `-Packages` | fzf, fd, eza, zoxide, ripgrep, bat, btop4win + the PSFzf (fzf keys) and posh-git (git tab-completion) modules into pwsh7's scope |
 | `-Fonts` | FiraCode Nerd Font (per-user) |
 | `-Starship` | starship + `shared/starship.toml` → `~/.config` |
 | `-Configs` | the pwsh 7 profile → `~/Documents/PowerShell/profile.ps1` |

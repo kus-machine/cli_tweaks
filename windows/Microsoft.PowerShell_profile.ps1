@@ -8,6 +8,13 @@
 
 $ErrorActionPreference = 'Continue'
 
+# Start in $HOME when launched from a system default dir (e.g. System32) rather
+# than an intentional folder, so "Open in Alacritty here" / cd-then-launch still
+# land where you meant.
+if ($PWD.Path -ieq "$env:WINDIR\System32" -or $PWD.Path -ieq $env:WINDIR) {
+    Set-Location $HOME
+}
+
 # ---------------------------------------------------------------------------
 # History + PSReadLine (bash-like editing & history search)
 # ---------------------------------------------------------------------------
@@ -31,6 +38,9 @@ if ((Get-Module -ListAvailable PSReadLine) -and -not [Console]::IsOutputRedirect
     # Alt+arrow / Ctrl+arrow word jumps
     Set-PSReadLineKeyHandler -Key Ctrl+LeftArrow  -Function BackwardWord
     Set-PSReadLineKeyHandler -Key Ctrl+RightArrow -Function ForwardWord
+    # Bash-like Tab: show a navigable list of candidates, auto-complete when
+    # there is only one match (instead of cycling through them one by one).
+    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 }
 
 # ---------------------------------------------------------------------------
@@ -91,6 +101,14 @@ $btop = (Get-Command btop -ErrorAction SilentlyContinue) ?? (Get-Command btop4wi
 if ($btop) {
     function top  { & $btop.Source @args }
     function htop { & $btop.Source @args }
+}
+
+# ---------------------------------------------------------------------------
+# posh-git: git tab-completion (subcommands, params, branches, remotes).
+# Imported before starship so starship still owns the prompt.
+# ---------------------------------------------------------------------------
+if (Get-Module -ListAvailable posh-git) {
+    Import-Module posh-git
 }
 
 # ---------------------------------------------------------------------------
