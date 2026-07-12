@@ -1,0 +1,19 @@
+# Keep Unix-side files LF regardless of the OS they're edited on.
+# CRLF in a bash script causes `\r`-not-found errors on Linux/macOS.
+
+*.sh            text eol=lf
+*.bash          text eol=lf
+*.toml          text eol=lf
+*.zshrc         text eol=lf
+
+# dotfiles / configs without an extension
+.bashrc         text eol=lf
+.bash_aliases   text eol=lf
+.tmux.conf      text eol=lf
+.zshrc          text eol=lf
+
+# Windows-native scripts keep CRLF
+*.ps1           text eol=crlf
+
+# Docs: normalise to LF
+*.md            text eol=lf

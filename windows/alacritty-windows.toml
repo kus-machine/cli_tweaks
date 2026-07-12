@@ -1,0 +1,7 @@
+# Windows-only overlay. install.ps1 appends this to the shared alacritty.toml
+# when deploying to %APPDATA%\alacritty\alacritty.toml. Kept out of the shared
+# config because forcing pwsh as the shell would break Alacritty on Linux/macOS
+# (where pwsh is not installed).
+[terminal.shell]
+program = "pwsh"
+args = ["-NoLogo"]

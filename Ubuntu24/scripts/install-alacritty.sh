@@ -2,13 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$ROOT_DIR/.." && pwd)"
 
 sudo apt install -y alacritty
 
 mkdir -p "$HOME/.config/alacritty"
 
+# alacritty.toml is shared across Linux/macOS/Windows (see repo shared/)
 install -m 644 \
-    "$ROOT_DIR/configs/alacritty.toml" \
+    "$REPO_ROOT/shared/alacritty.toml" \
     "$HOME/.config/alacritty/alacritty.toml"
 
 echo
