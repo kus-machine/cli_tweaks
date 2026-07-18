@@ -16,6 +16,29 @@ if ($PWD.Path -ieq "$env:WINDIR\System32" -or $PWD.Path -ieq $env:WINDIR) {
 }
 
 # ---------------------------------------------------------------------------
+# PATH self-heal. winget appends a long per-tool dir to the user PATH; some
+# launchers (and stale app environments, e.g. an already-open VS Code) drop the
+# tail, so tools go missing. Re-add ours to THIS session if absent. Fast (only
+# globs when a tool is actually missing) and version-independent.
+# ---------------------------------------------------------------------------
+$__pkgs = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages"
+foreach ($__t in @(
+    @{ c = 'fzf';      g = "$__pkgs\junegunn.fzf*\fzf.exe" },
+    @{ c = 'eza';      g = "$__pkgs\eza-community.eza*\eza.exe" },
+    @{ c = 'zoxide';   g = "$__pkgs\ajeetdsouza.zoxide*\zoxide.exe" },
+    @{ c = 'fd';       g = "$__pkgs\sharkdp.fd*\*\fd.exe" },
+    @{ c = 'rg';       g = "$__pkgs\BurntSushi.ripgrep*\*\rg.exe" },
+    @{ c = 'bat';      g = "$__pkgs\sharkdp.bat*\*\bat.exe" },
+    @{ c = 'btop4win'; g = "$__pkgs\aristocratos.btop4win*\btop4win\btop4win.exe" }
+)) {
+    if (-not (Get-Command $__t.c -ErrorAction Ignore)) {
+        $__exe = Get-Item $__t.g -ErrorAction Ignore | Select-Object -First 1
+        if ($__exe) { $env:PATH = (Split-Path $__exe.FullName) + ';' + $env:PATH }
+    }
+}
+Remove-Variable __pkgs, __t, __exe -ErrorAction Ignore
+
+# ---------------------------------------------------------------------------
 # History + PSReadLine (bash-like editing & history search)
 # ---------------------------------------------------------------------------
 # Only wire the interactive editor when we have a real terminal — guards
@@ -51,7 +74,8 @@ if (Get-Command fd -ErrorAction SilentlyContinue) {
     $env:FZF_CTRL_T_COMMAND  = $env:FZF_DEFAULT_COMMAND
     $env:FZF_ALT_C_COMMAND   = 'fd --type d --hidden --exclude .git --exclude .cache'
 }
-if (Get-Module -ListAvailable PSFzf) {
+# PSFzf's Import-Module throws if the fzf binary isn't on PATH, so require it.
+if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvailable PSFzf)) {
     Import-Module PSFzf
     Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+t' -PSReadlineChordReverseHistory 'Ctrl+r'
 }
