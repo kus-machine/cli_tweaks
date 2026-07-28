@@ -20,6 +20,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | System monitor        | **btop** (`top`/`htop`)             | ✅       | 🚫          | ✅ (btop4win)   |
 | Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅       | ✅          | 🚫 (no tmux)    |
 | Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | ✅          | ✅              |
+| Uninstall / revert    | manifest-driven uninstaller          | ✅       | 📝          | ✅              |
 
 Windows was installed and verified on 2026-07-12 (Windows 11, pwsh 7.6.3): all
 tools install via winget, the profile loads clean, and every macro/tool resolves.
@@ -28,6 +29,12 @@ eyeball, but their init runs without error.
 
 SSH config and a Raspberry Pi / remote profile are planned separately — see
 [PLAN.md](PLAN.md).
+
+Ubuntu was re-verified on 2026-07-28 (Ubuntu 24.04, kernel 6.17 OEM) after two
+real bugs were fixed: `.bashrc` sourced fzf's completion before bash-completion
+(killing `Tab` in every non-login shell — i.e. everywhere except tmux), and the
+installer had no uninstaller and destroyed the user's original dotfiles by
+re-backing-up its own output on each run.
 
 ## Known drift / cleanup to reconcile
 

@@ -77,6 +77,34 @@ esac
 #export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
 
+# ---------------------------------------------------------------------------
+# Programmable completion  --  MUST be loaded BEFORE the fzf block below.
+# ---------------------------------------------------------------------------
+# Why the order matters (this bit me: Tab worked in tmux but not in Alacritty):
+#
+#   fzf's completion.bash hijacks the completion of ~35 commands (git, ls, cp,
+#   rm, cd, ssh, kill, export, ...) with _fzf_path_completion. When you do NOT
+#   type the `**` trigger, it is supposed to hand the request back to the real
+#   completion via _fzf_handle_dynamic_completion. That fallback only works if
+#   bash-completion's `_completion_loader` already existed when completion.bash
+#   was sourced -- it records that in `_fzf_completion_loader`.
+#
+#   Source fzf first and that flag stays empty, so the fallback silently does
+#   nothing: `git stat<Tab>` just beeps. tmux hid the bug because tmux starts a
+#   *login* shell, and /etc/profile.d/bash_completion.sh loads bash-completion
+#   before ~/.bashrc ever runs. Alacritty/GNOME Terminal start a *non-login*
+#   shell, so ~/.bashrc is the only chance to get the order right.
+#
+# Keep this block above the fzf block. Do not "tidy" it back down.
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+
+
 # fzf backend configuration (ignoring .git, .vscode, and .cache)
 EXCLUDES=(.git .vscode .vscode-shared .cache .config .local)
 FDFIND_EXCLUDES=""
@@ -101,17 +129,6 @@ fi
 
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
-fi
-
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
-if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
-  elif [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-  fi
 fi
 
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"

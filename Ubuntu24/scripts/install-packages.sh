@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-sudo apt update
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/common.sh"
 
-sudo apt install -y \
+info "refreshing apt package lists"
+sudo apt-get update
+
+# bash-completion is listed explicitly: .bashrc sources it *before* fzf's
+# completion, and without it fzf's hijacked completions have nothing to fall
+# back to (Tab silently does nothing). See the comment block in configs/.bashrc.
+apt_install_tracked \
+    bash-completion \
     curl \
     git \
+    jq \
     tmux \
     eza \
     tree \
@@ -13,3 +22,6 @@ sudo apt install -y \
     fd-find \
     ripgrep \
     btop
+
+echo
+ok "packages installed"
