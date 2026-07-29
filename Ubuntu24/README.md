@@ -27,6 +27,7 @@ Installs useful command-line tools:
 
 - bash-completion (required — see [Tab completion](#tab-completion))
 - git
+- xclip (clipboard — see [Copying text out of the terminal](#copying-text-out-of-the-terminal))
 - jq (used to track what the installer changes)
 - tmux
 - eza
@@ -262,6 +263,40 @@ typing in the menu keeps the highlighted candidate so a long list can only be
 narrowed by deleting it by hand first, and UP/DOWN open an interactive search
 session that parks a `(nsearch#1: << !504 >>)` status line and leaves the result
 selected — where the next character you type replaces it.
+
+---
+
+## Copying text out of the terminal
+
+Three different selections exist and they are easy to confuse. Which one you get
+depends on whether tmux is running and whether Shift is held:
+
+| Where you are | How to select | How to copy |
+|---|---|---|
+| **No tmux** | drag with the mouse | automatic — `selection.save_to_clipboard` is on (`Ctrl+Shift+C` still works) |
+| **In tmux** | drag with the mouse (the orange selection) | automatic on release, piped through `xclip` |
+| **In tmux** | double-click a word / triple-click a line | automatic, same pipe |
+| **In tmux**, scrolled back | wheel or `Shift+PageUp` enters copy-mode, then drag — or `Space` to start a keyboard selection | mouse release, or `Enter` |
+| **On the command line** | `Shift`+arrows | `Alt+W` (with nothing selected it copies the whole line) |
+
+Paste is unchanged: `Ctrl+Shift+V`, or middle-click for the primary selection.
+
+Why the old way fought you: **under tmux, `Shift`+drag + `Ctrl+Shift+C` can never
+scroll**. That selection belongs to Alacritty, and while tmux is running
+Alacritty's scrollback is empty — the history lives inside tmux. Anything that
+scrolls has to be tmux's copy-mode, and then the copy has to be tmux's too.
+
+And why tmux copies only *sometimes* reached the clipboard: tmux's default
+`set-clipboard external` hands the text to the terminal as an OSC 52 escape
+sequence, which Alacritty accepts only under some `TERM` values. `.tmux.conf`
+now pipes every copy through `xclip` instead, which does not depend on the
+terminal at all. That makes **xclip a real dependency** (it is in
+`--packages`); without it, tmux copies fall back to the flaky path and `Alt+W`
+has nowhere to put the text.
+
+`Alt+W` exists because ble.sh's own copy only fills its internal kill-ring —
+which is why a `Shift`+arrow selection could be deleted but never pasted
+anywhere else. It fills both now, so `Ctrl+Y` still yanks it back.
 
 ---
 

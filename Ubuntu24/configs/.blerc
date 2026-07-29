@@ -61,11 +61,58 @@ function ble/widget/blerc/history-search-forward {
     _ble_edit_mark_active=
 }
 
+
+# ---------------------------------------------------------------------------
+# Alt+W  --  copy the command line to the SYSTEM clipboard
+# ---------------------------------------------------------------------------
+# Shift+arrows select on the command line, but ble.sh's own copy (M-w) only
+# fills its internal kill-ring -- which is why the selection could be deleted
+# but never pasted anywhere else. This puts it on the real clipboard as well.
+#
+#   with a selection : copies the selection
+#   without one      : copies the whole line
+#
+# The kill-ring still gets the same text, so Ctrl+Y keeps working.
+
+# Pick a clipboard tool once, at startup. Wayland first (wl-copy only works
+# there), then the X11 tools, then macOS -- so the same file works everywhere.
+if [[ ${WAYLAND_DISPLAY-} ]] && type -t wl-copy &>/dev/null; then
+    function blerc/clipboard-write { wl-copy; }
+elif type -t xclip &>/dev/null; then
+    function blerc/clipboard-write { xclip -selection clipboard -in; }
+elif type -t xsel &>/dev/null; then
+    function blerc/clipboard-write { xsel --clipboard --input; }
+elif type -t pbcopy &>/dev/null; then
+    function blerc/clipboard-write { pbcopy; }
+else
+    # No clipboard tool installed: keep the kill-ring copy, say so, drop the text.
+    function blerc/clipboard-write { cat >/dev/null; }
+fi
+
+function ble/widget/blerc/copy-to-clipboard {
+    local beg end
+    if [[ $_ble_edit_mark_active ]]; then
+        beg=$_ble_edit_mark end=$_ble_edit_ind
+        ((beg<=end)) || { beg=$_ble_edit_ind end=$_ble_edit_mark; }
+    else
+        beg=0 end=${#_ble_edit_str}
+    fi
+    ((beg<end)) || { ble/widget/.bell 'nothing to copy'; return 0; }
+
+    ble-edit/content/clear-arg
+    ble/widget/.copy-range "$beg" "$end"        # ble.sh's own kill-ring
+    # put, not print: no trailing newline, or pasting it would submit the line
+    ble/util/put "${_ble_edit_str:beg:end-beg}" | blerc/clipboard-write
+    _ble_edit_mark_active=
+}
+
 # The emacs keymap is loaded lazily, hence the hook. ~/.bashrc deliberately does
 # NOT `bind` the arrows when ble.sh is active -- that would overwrite these.
 function blerc/emacs-load-hook {
     ble-bind -m emacs -f up   blerc/history-search-backward
     ble-bind -m emacs -f down blerc/history-search-forward
+    ble-bind -m emacs -f 'M-w'      blerc/copy-to-clipboard
+    ble-bind -m emacs -f 'C-insert' blerc/copy-to-clipboard
 }
 blehook/eval-after-load keymap_emacs blerc/emacs-load-hook
 

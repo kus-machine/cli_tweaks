@@ -119,6 +119,32 @@ _Last updated: 2026-07-28._
   (`~/.local/share/blesh`, `~/.cache/blesh`). A ble.sh the user installed
   themselves is detected and left alone.
 
+### Clipboard / copying (done, 2026-07-29)
+- **tmux copies go through `xclip`**, not tmux's default OSC 52
+  (`set-clipboard external`) — Alacritty accepts that only under some `TERM`
+  values, which is why mouse copies reached the clipboard unpredictably.
+  `copy-pipe-and-cancel 'xclip -selection clipboard -in'` on
+  `MouseDragEnd1Pane`, `Enter`, `y`, plus rebound double/triple-click (tmux's
+  own bindings route those through OSC 52 too). Every binding is duplicated
+  into `copy-mode` **and** `copy-mode-vi`: tmux only uses the -vi table when
+  `mode-keys` is vi, and ours is emacs. `xclip` added to `--packages`.
+- **Alacritty `selection.save_to_clipboard = true`** in `shared/alacritty.toml`
+  so a mouse selection needs no `Ctrl+Shift+C`.
+- **`Alt+W` copies the command line** (`blerc/copy-to-clipboard`): selection if
+  there is one, whole line otherwise, into both the system clipboard and
+  ble.sh's kill-ring. ble.sh's stock copy only fills the kill-ring, so a
+  `Shift`+arrow selection could be deleted but not pasted out. Use
+  `ble/util/put`, not `ble/util/print`: a trailing newline would submit the
+  line when pasted. Clipboard tool is picked at startup (wl-copy on Wayland →
+  xclip → xsel → pbcopy) so the file stays portable.
+- **`Shift+PageUp/PageDown`** page through tmux history, and
+  **`escape-time 10`** (was tmux's 500 ms default) stops tmux delaying every Esc
+  — which directly affects the ble.sh Esc bindings above.
+- Not fixable, documented instead: under tmux, `Shift`+drag +`Ctrl+Shift+C`
+  cannot scroll. That selection is Alacritty's, and Alacritty's scrollback is
+  empty while tmux runs — the history is tmux's, so the copy must be tmux's.
+- macOS `.tmux.conf` got the same bindings with `pbcopy` — **untested**, no Mac.
+
 _SSH config and the Raspberry Pi / remote profile are intentionally **plan-only**
 for now (below) — nothing implemented yet._
 

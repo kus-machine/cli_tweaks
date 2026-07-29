@@ -22,6 +22,17 @@ style = { shape = "Beam", blinking = "On" }
 [scrolling]
 history = 50000
 
+[selection]
+# Selecting with the mouse puts the text straight on the system clipboard, so
+# Ctrl+Shift+C is only needed for keyboard-driven copies. Middle-click paste
+# (the primary selection) is unaffected.
+#
+# Inside tmux this applies to a Shift+drag selection, i.e. the terminal's own.
+# A plain drag there belongs to tmux, which copies via ~/.tmux.conf's xclip
+# binding -- and note that only tmux's copy-mode can scroll the history, since
+# the scrollback below is empty while tmux is running.
+save_to_clipboard = true
+
 # Modern "Tokyo Night" Color Scheme
 [colors.primary]
 background = "#1a1b26"

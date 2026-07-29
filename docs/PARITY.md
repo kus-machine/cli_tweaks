@@ -21,6 +21,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | git shortcuts         | `gs` (+ `gd` `gl`)                   | ✅ gs    | ✅ gs/gd/gl/gl1| ✅ gs/gd/gl    |
 | System monitor        | **btop** (`top`/`htop`)             | ✅       | 🚫          | ✅ (btop4win)   |
 | Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅       | ✅          | 🚫 (no tmux)    |
+| Copy to clipboard     | tmux copy-pipe + `Alt+W` on the line | ✅ xclip | 🟡 pbcopy, untested | 🟡 terminal only |
 | Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | ✅          | ✅              |
 | Uninstall / revert    | manifest-driven uninstaller          | ✅       | 📝          | ✅              |
 

@@ -102,6 +102,14 @@ touch the others (or explicitly note the gap in PARITY.md):
   is read once, at shell start. *The mark*: with `_ble_edit_mark_active`
   set, the next character typed REPLACES the marked region — that is why the
   history-search wrappers in `.blerc` clear it.
+- **Clipboard: never rely on OSC 52.** tmux's default `set-clipboard external`
+  reaches Alacritty only under some `TERM` values (the "copies sometimes work"
+  bug). Both tmux configs pipe copies through `xclip` (macOS: `pbcopy`), so
+  **xclip is a dependency**, listed in `install-packages.sh`. Any new copy
+  binding must be added to `copy-mode` *and* `copy-mode-vi` (tmux uses the -vi
+  table only when `mode-keys` is vi; ours is emacs). In `.blerc`, write
+  clipboard text with `ble/util/put` — `ble/util/print` appends a newline, which
+  submits the line when pasted.
 - **Alacritty is not where autosuggestions live.** A terminal emulator cannot
   draw them; the line editor does. Grey-text bugs are ble.sh/`.bashrc` bugs.
 - **Alacritty needs working OpenGL/GLX.** A `BadValue … BadAttribute` startup
