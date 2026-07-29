@@ -10,7 +10,7 @@
 #               installed. This is the "make my shell normal again" button.
 #   --full      --configs, PLUS apt-remove the packages WE installed (never the
 #               ones flagged pre-existing), remove the fonts we placed, and
-#               remove starship if we installed it.
+#               remove starship / ble.sh if we installed them.
 #
 # --dry-run prints what would happen and changes nothing.
 # ---------------------------------------------------------------------------
@@ -31,12 +31,12 @@ Usage:
   ./uninstall.sh --full    [--dry-run]
 
 Options:
-  --configs   Restore original .bashrc / .bash_aliases / .tmux.conf /
+  --configs   Restore original .bashrc / .bash_aliases / .blerc / .tmux.conf /
               starship.toml / alacritty.toml from the pristine copies taken on
               first install. Tools stay installed.
-  --full      Everything --configs does, plus remove the apt packages, fonts
-              and starship binary that THIS installer added. Anything that was
-              already present is left untouched.
+  --full      Everything --configs does, plus remove the apt packages, fonts,
+              the starship binary and ble.sh that THIS installer added.
+              Anything that was already present is left untouched.
   --dry-run   Show what would change; touch nothing.
   --help      Show this help.
 
@@ -74,7 +74,7 @@ if [[ ! -f "$MANIFEST" ]]; then
     echo "so it will not guess. If you installed before manifests existed, the"
     echo "old installer left timestamped backups next to each file:"
     echo
-    for f in "$HOME/.bashrc" "$HOME/.bash_aliases" "$HOME/.tmux.conf" \
+    for f in "$HOME/.bashrc" "$HOME/.bash_aliases" "$HOME/.blerc" "$HOME/.tmux.conf" \
              "$HOME/.config/starship.toml" "$HOME/.config/alacritty/alacritty.toml"; do
         shopt -s nullglob
         baks=("$f".bak*)
@@ -145,7 +145,23 @@ else
     done
 fi
 
-# --- 4. apt packages -------------------------------------------------------
+# --- 4. directory trees we installed (ble.sh) ------------------------------
+#
+# Only entries explicitly flagged preexisting=false are ours to delete. Older
+# `dirs` entries carry no flag (they just note a config dir we created, whose
+# contents step 1 already reverted) and are skipped.
+
+info "removing directories we installed"
+mapfile -t trees < <(jq -r '.dirs[] | select(.preexisting == false) | .id' "$MANIFEST")
+if [[ ${#trees[@]} -eq 0 ]]; then
+    echo "  (none recorded)"
+else
+    for d in "${trees[@]}"; do
+        [[ -d "$d" ]] && { echo "  remove: $d"; run rm -rf "$d"; }
+    done
+fi
+
+# --- 5. apt packages -------------------------------------------------------
 
 info "removing apt packages we installed"
 mapfile -t pkgs < <(jq -r '.packages[] | select(.preexisting == false) | .id' "$MANIFEST")
@@ -157,7 +173,7 @@ else
     run sudo apt-get autoremove -y
 fi
 
-# --- 5. manifest + pristine store ------------------------------------------
+# --- 6. manifest + pristine store ------------------------------------------
 #
 # Keep the pristine store. If the user re-installs later we want the ORIGINAL
 # originals, not a snapshot of a half-reverted state. Only drop the manifest.

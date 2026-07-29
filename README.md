@@ -12,6 +12,8 @@ everywhere.
 - **Prompt:** starship (`shared/starship.toml`)
 - **Terminal:** Alacritty, Tokyo Night, FiraCode Nerd Font (`shared/alacritty.toml`)
 - **Fuzzy search:** fzf + fd — `Ctrl+T` files, `Ctrl+R` history, `Alt+C` cd
+- **Inline autosuggestions:** grey completion-as-you-type from history —
+  ble.sh (bash), zsh-autosuggestions (zsh), PSReadLine prediction (pwsh)
 - **Macros:** `l`/`la`/`lss` (eza), `tr` (tree), `fin` (find), `gs` (git status),
   `top`/`htop` → btop, tmux helpers `t`/`ta`/`tk`/`tn` (Linux/macOS)
 

@@ -23,8 +23,8 @@ Read these first: [docs/PLAN.md](docs/PLAN.md) (roadmap + status + decisions),
    (currently: `Ubuntu24/scripts/install-{starship,alacritty}.sh`,
    `windows/install.ps1`).
 3. **Per-shell files stay platform-local** because syntax differs:
-   `Ubuntu24/configs/.bashrc` + `.bash_aliases` (bash), `macos/.zshrc` (zsh),
-   `windows/Microsoft.PowerShell_profile.ps1` (pwsh).
+   `Ubuntu24/configs/.bashrc` + `.bash_aliases` + `.blerc` (bash),
+   `macos/.zshrc` (zsh), `windows/Microsoft.PowerShell_profile.ps1` (pwsh).
 4. **Guard every tool** behind a presence check (`command -v` / `Get-Command`)
    so partial installs never break the shell.
 5. **Never overwrite a user file without capturing the original first**, and
@@ -37,7 +37,9 @@ Read these first: [docs/PLAN.md](docs/PLAN.md) (roadmap + status + decisions),
    `mv file file.bak.<ts>` on every run and destroyed the real original.)
 6. Keep installers **componentised** with matching switches across platforms:
    `packages`, `fonts`, `starship`, `configs`, `alacritty` (+ `shell` on
-   Windows for pwsh7). SSH is a planned, separate, manual step — not auto-installed.
+   Windows for pwsh7, `blesh` on Ubuntu — Windows/macOS get inline
+   autosuggestions from PSReadLine/zsh-autosuggestions and need no component).
+   SSH is a planned, separate, manual step — not auto-installed.
 7. **Every install component must be revertible.** Record what it did in the
    manifest and undo it in the platform uninstaller
    (`Ubuntu24/uninstall.sh`, `windows/uninstall.ps1`). Both refuse to touch
@@ -69,6 +71,39 @@ touch the others (or explicitly note the gap in PARITY.md):
   already exists. Get it wrong and Tab dies in Alacritty/GNOME Terminal but
   keeps working in tmux (tmux starts a login shell, which loads
   bash-completion via `/etc/profile.d/` first). See `Ubuntu24/configs/.bashrc`.
+- **ble.sh is loaded in two halves and the order is load-bearing.**
+  `source ~/.local/share/blesh/ble.sh --attach=none` is the *first* thing in
+  `Ubuntu24/configs/.bashrc`, `ble-attach` is the *last*. Everything in between
+  (bash-completion, fzf, starship, `bind`) then registers through ble.sh's
+  emulation layer rather than raw readline; starship checks `$BLE_VERSION` at
+  init time to decide whether to hook via `blehook`. Nothing that binds keys or
+  touches `PROMPT_COMMAND` may come after `ble-attach`. Under ble.sh, fzf must
+  come from `ble-import -d integration/fzf-{completion,key-bindings}`, not from
+  `/usr/share/doc/fzf/examples/key-bindings.bash` (kept as the fallback for a
+  machine without ble.sh).
+- **ble.sh's settings live in `Ubuntu24/configs/.blerc`, not in `.bashrc`**
+  (ble.sh sources `~/.blerc` by itself). That file holds the autosuggestion
+  options and a full **Tokyo Night** face palette that overrides ble.sh's
+  default one — the default (red builtins, hot-pink globs, white-on-red error
+  blocks) was rejected as ugly. Keep any new colour in that palette: hue only,
+  values taken from `shared/alacritty.toml`, no bold/underline/background
+  blocks. The grey suggestion stays `fg=242` (approved) rather than a themed
+  colour, so it reads as "not typed yet".
+- **ble.sh keymap surgery has three traps** (all hit while making `Esc` cancel
+  everywhere). *Timing*: every keymap is built lazily and its `define` drops
+  anything bound earlier, so a bind straight from `.blerc` is silently ignored —
+  `nsearch`/`isearch` must be bound in `blehook/eval-after-load keymap_emacs`,
+  while `auto_complete`/`menu_complete` are already built when the `complete`
+  hook runs and need `ble/function#advice after
+  ble-decode/keymap:<name>/define`. *Key name*: bind `ESC`, `C-[` **and**
+  `C-M-[` (two Esc bytes composed as Meta) — and none of them arrive at all
+  without `bleopt decode_isolated_esc=esc`. A report of
+  `unbound keyseq: C-M-[ C-M-[` means the shell predates the config: `~/.blerc`
+  is read once, at shell start. *The mark*: with `_ble_edit_mark_active`
+  set, the next character typed REPLACES the marked region — that is why the
+  history-search wrappers in `.blerc` clear it.
+- **Alacritty is not where autosuggestions live.** A terminal emulator cannot
+  draw them; the line editor does. Grey-text bugs are ble.sh/`.bashrc` bugs.
 - **Alacritty needs working OpenGL/GLX.** A `BadValue … BadAttribute` startup
   error is a GPU-driver fault, not a config fault — check `glxinfo -B` and
   `nvidia-smi` (a driver upgrade needs a reboot before the kernel module

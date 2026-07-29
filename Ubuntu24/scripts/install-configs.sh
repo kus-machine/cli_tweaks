@@ -9,6 +9,8 @@ info "installing bash + tmux configuration"
 deploy_file "$ROOT_DIR/configs/.bashrc"       "$HOME/.bashrc"
 deploy_file "$ROOT_DIR/configs/.bash_aliases" "$HOME/.bash_aliases"
 deploy_file "$ROOT_DIR/configs/.tmux.conf"    "$HOME/.tmux.conf"
+# ble.sh's init file. Harmless when ble.sh is not installed: nothing reads it.
+deploy_file "$ROOT_DIR/configs/.blerc"        "$HOME/.blerc"
 
 echo
 ok "bash and tmux configuration installed"

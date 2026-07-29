@@ -16,7 +16,7 @@ cli_tweaks/
 ├── Ubuntu24/                # Linux — the CANONICAL experience
 │   ├── install.sh           # flag dispatcher (--packages --fonts ... --all)
 │   ├── scripts/*.sh         # one installer per component + common.sh
-│   └── configs/             # .bashrc, .bash_aliases, .tmux.conf
+│   └── configs/             # .bashrc, .bash_aliases, .blerc, .tmux.conf
 ├── macos/                   # macOS (zsh) — being brought up to parity
 │   ├── .zshrc, .tmux.conf
 │   └── install.sh           # 📝 planned
@@ -42,7 +42,8 @@ are tracked in [PLAN.md](PLAN.md), not present in the tree yet.
 
 3. **Installers are componentised and idempotent-ish.** Each platform exposes
    the same component switches (`packages`, `fonts`, `starship`, `configs`,
-   `alacritty`; Windows adds `shell` for pwsh7). Existing user files are backed
+   `alacritty`; Windows adds `shell` for pwsh7, Ubuntu adds `blesh` for the
+   inline autosuggestions bash lacks natively). Existing user files are backed
    up (`*.bak.<timestamp>`) before being overwritten.
 
 4. **Everything degrades gracefully.** Shell profiles guard each tool behind a

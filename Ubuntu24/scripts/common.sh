@@ -162,6 +162,18 @@ record_bin() {
         '{id: $id, preexisting: $pre}')"
 }
 
+# record_dir <path> [preexisting:true|false]
+#
+# Without the flag the entry is only a note that we created the directory, and
+# the uninstaller leaves it alone (e.g. ~/.config/alacritty, whose *contents*
+# are reverted file by file). With preexisting=false it means "this whole tree
+# is ours" (e.g. ~/.local/share/blesh) and --full deletes it.
 record_dir() {
-    manifest_add dirs "$(jq -n --arg id "$1" '{id: $id}')"
+    local pre="${2:-}"
+    if [[ -n "$pre" ]]; then
+        manifest_add dirs "$(jq -n --arg id "$1" --argjson pre "$pre" \
+            '{id: $id, preexisting: $pre}')"
+    else
+        manifest_add dirs "$(jq -n --arg id "$1" '{id: $id}')"
+    fi
 }

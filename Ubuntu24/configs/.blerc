@@ -1,0 +1,247 @@
+# ~/.blerc -- ble.sh settings. Sourced automatically by ble.sh at startup
+# (~/.blerc is its default init file), i.e. by the block at the top of ~/.bashrc.
+#
+# Two things live here:
+#   1. behaviour  -- the inline autosuggestion ("grey text") and how eager it is
+#   2. colours    -- a Tokyo Night palette for the line you are typing
+#
+# ble.sh's out-of-the-box palette is the reason this file exists: it paints
+# builtins red, keywords blue, globs hot pink, and puts white-on-red / white-on-
+# green blocks behind things. Everything below replaces that with the same
+# Tokyo Night colours the terminal itself uses (shared/alacritty.toml), so the
+# command line looks like part of the theme instead of a 1998 syntax highlighter.
+#
+# Reference:  ble-face          # list every face and its current value
+#             bleopt            # list every option
+# Reload after editing:  ble-reload
+
+
+# ---------------------------------------------------------------------------
+# Inline autosuggestion (the feature we came for)
+# ---------------------------------------------------------------------------
+bleopt complete_auto_complete=1   # suggest while typing
+bleopt complete_auto_delay=1      # ms of idle keyboard before it shows up
+bleopt complete_auto_menu=        # empty = never pop the completion menu unasked
+
+# The suggestion itself. 242 is a neutral grey, deliberately NOT part of the
+# palette below: it must read as "not typed yet" rather than as another token
+# colour. #565f89 (the Tokyo Night comment blue-grey) also works if you want it
+# tinted; ble.sh's own default (fg=238,bg=254) is a light block, unreadable here.
+ble-face auto_complete=fg=242
+
+# Accepting a suggestion:  Right / End / Ctrl+F  take the whole thing,
+#                          Ctrl+Right / Alt+F    take one word,
+#                          Esc (or Ctrl+G)       dismisses it -- see below.
+
+
+# ---------------------------------------------------------------------------
+# UP / DOWN  --  prefix history search, readline-style
+# ---------------------------------------------------------------------------
+# `bind '"\e[A": history-search-backward'` (what ~/.bashrc uses without ble.sh)
+# maps onto ble.sh's *interactive* nsearch: it opens a search session and parks
+# a status line like
+#
+#     (nsearch#1: << !504 >>) `cd '
+#
+# waiting for you to accept it. Readline just replaces the line and gets out of
+# the way. hide-status:point=end:immediate-accept restores that -- no status
+# line, cursor at the end, result accepted at once.
+#
+# One thing is still off after that: nsearch leaves the recalled remainder
+# *selected* (mark active), and in ble.sh typing over an active selection
+# REPLACES it -- so hitting UP and then typing threw the recalled command away.
+# Hence the wrappers: run the search, then drop the selection. Repeated UP/DOWN
+# still walk through older/newer matches of the same prefix.
+function ble/widget/blerc/history-search-backward {
+    ble/widget/history-search-backward hide-status:point=end:immediate-accept
+    _ble_edit_mark_active=
+}
+function ble/widget/blerc/history-search-forward {
+    ble/widget/history-search-forward hide-status:point=end:immediate-accept
+    _ble_edit_mark_active=
+}
+
+# The emacs keymap is loaded lazily, hence the hook. ~/.bashrc deliberately does
+# NOT `bind` the arrows when ble.sh is active -- that would overwrite these.
+function blerc/emacs-load-hook {
+    ble-bind -m emacs -f up   blerc/history-search-backward
+    ble-bind -m emacs -f down blerc/history-search-forward
+}
+blehook/eval-after-load keymap_emacs blerc/emacs-load-hook
+
+
+# ---------------------------------------------------------------------------
+# The Tab menu  --  double-Tab opens the candidate browser (menu_complete)
+# ---------------------------------------------------------------------------
+# Getting OUT of that menu is the problem: ble.sh binds Ctrl+G and nothing else,
+# so Esc / Ctrl+C / anything else you reach for beeps "unbound keyseq". Give it
+# the two keys everyone actually presses. `cancel` = drop the highlighted
+# candidate, put the word back the way you typed it, return to normal editing.
+#
+# Typing while the menu is up is the other half. ble.sh's stock __default__ is
+# menu_complete/exit-default: it KEEPS the highlighted candidate and appends
+# your character to it (`cd alp` + Tab Tab + `i` -> `cd alpha1i`), so narrowing
+# a 50-entry list means deleting the candidate by hand first. cancel-default
+# instead puts the word back the way you typed it, inserts the character, and
+# lets the menu re-filter itself (`-> cd alpi`, menu now shows only alpine3).
+function ble/widget/menu_complete/cancel-default {
+    ble/widget/menu_complete/cancel
+    ble/decode/widget/redispatch
+}
+
+function blerc/menu-complete-load-hook {
+    ble-bind -m menu_complete -f 'C-c' menu_complete/cancel
+}
+blehook/eval-after-load complete blerc/menu-complete-load-hook
+
+
+# ---------------------------------------------------------------------------
+# Esc  --  the universal "get out of whatever just popped up"
+# ---------------------------------------------------------------------------
+# ble.sh's escape hatch is Ctrl+G, in four different modes. Esc is the key
+# muscle memory reaches for, so it is bound to the same `cancel` widget in each.
+# Ctrl+G still works everywhere; this only adds a second way out.
+#
+# First, Esc has to arrive at all: by default ble.sh treats a lone Esc as the
+# Meta prefix (the readline "Esc f" == "Alt+F" idiom) and holds it while waiting
+# for the next key, so it appears to do nothing. `esc` delivers it as its own
+# key. Alt+<key> is unaffected -- the terminal sends those as Esc and the letter
+# in one burst, which still decodes as Meta.
+bleopt decode_isolated_esc=esc
+
+# Bind every name the key can arrive under. A lone Esc reaches ble.sh as its raw
+# control code, i.e. the key `C-[`; `ESC` is what a terminal in
+# modifyOtherKeys/CSI-u mode reports instead; and `C-M-[` is what two Esc bytes
+# in a row compose into (Esc pressed twice, or a shell still running with the
+# old Meta-prefix behaviour). Bind only `ESC` and Esc looks dead half the time.
+function blerc/bind-escape {
+    local keymap=$1 widget=$2
+    ble-bind -m "$keymap" -f 'ESC'   "$widget"
+    ble-bind -m "$keymap" -f 'C-['   "$widget"
+    ble-bind -m "$keymap" -f 'C-M-[' "$widget"
+}
+
+# Getting these to stick is fiddly, because every one of these keymaps is built
+# lazily and building it re-runs its `define`, dropping anything bound earlier.
+# A bind from this file, run before any of that, is silently ignored. So each
+# one waits for the module that owns it: nsearch/isearch are set up with the
+# emacs keymap, auto_complete/menu_complete arrive with the completion module --
+# and those two are already built by the time that hook runs, so they need the
+# binding hung off the end of their `define` instead.
+function blerc/search-keymaps-load-hook {
+    blerc/bind-escape nsearch nsearch/cancel   # abandon a history search
+    blerc/bind-escape isearch isearch/cancel   # abandon an incremental search
+
+    # At a plain prompt there is nothing to cancel, and ble.sh's answer to an
+    # unbound key is to print "unbound keyseq: C-M-[ C-M-[" at you. Make Esc do
+    # nothing, quietly, instead.
+    blerc/bind-escape emacs nop
+}
+blehook/eval-after-load keymap_emacs blerc/search-keymaps-load-hook
+
+function blerc/complete-keymaps-load-hook {
+    # drop the grey suggestion
+    ble/function#advice after ble-decode/keymap:auto_complete/define \
+        'blerc/bind-escape auto_complete auto_complete/cancel'
+    # leave the Tab menu (and see the menu section above for __default__)
+    ble/function#advice after ble-decode/keymap:menu_complete/define \
+        'blerc/bind-escape menu_complete menu_complete/cancel
+         ble-bind -m menu_complete -f __default__ menu_complete/cancel-default'
+}
+blehook/eval-after-load complete blerc/complete-keymaps-load-hook
+
+
+# ---------------------------------------------------------------------------
+# Highlighting layers -- all three on, all three re-coloured below
+# ---------------------------------------------------------------------------
+bleopt highlight_syntax=1         # commands, keywords, strings, operators
+bleopt highlight_filename=1       # colour a word by what it resolves to on disk
+bleopt highlight_variable=1       # colour a name by its variable type
+
+
+# ---------------------------------------------------------------------------
+# Tokyo Night palette  (identical values to shared/alacritty.toml)
+#
+#   blue    #7aa2f7    magenta #bb9af7    red    #f7768e    fg      #c0caf5
+#   cyan    #7dcfff    teal    #73daca    orange #ff9e64    comment #565f89
+#   green   #9ece6a    yellow  #e0af68    lightblue #89ddff selection #283457
+#
+# Rules of thumb kept below: no background blocks, no underline, no bold. Depth
+# is expressed with hue only, and anything "informational" fades to #565f89.
+# ---------------------------------------------------------------------------
+
+# --- the command word ------------------------------------------------------
+ble-face command_file=fg=#7aa2f7          # external command: git, ls, ...
+ble-face command_builtin=fg=#7dcfff       # shell builtin: cd, echo, export
+ble-face command_builtin_dot=fg=#7dcfff   # . and :
+ble-face command_function=fg=#73daca      # your functions (tr, fin, ta, ...)
+ble-face command_alias=fg=#73daca         # your aliases   (l, la, gs, ...)
+ble-face command_keyword=fg=#bb9af7       # if, for, while, function
+ble-face command_directory=fg=#7aa2f7     # bare path = implicit cd
+ble-face command_jobs=fg=#bb9af7          # %1, %vim
+ble-face command_suffix=fg=#565f89        # suffix-alias hints (were colour blocks)
+ble-face command_suffix_new=fg=#565f89
+
+# --- syntax ----------------------------------------------------------------
+ble-face syntax_default=none              # plain arguments stay foreground
+ble-face syntax_command=fg=#7aa2f7
+ble-face syntax_quoted=fg=#9ece6a         # "string"
+ble-face syntax_quotation=fg=#9ece6a      # the quote characters themselves
+ble-face syntax_escape=fg=#bb9af7         # \n, \"
+ble-face syntax_expr=fg=#7dcfff           # $(( ... ))
+ble-face syntax_brace=fg=#e0af68          # {a,b}
+ble-face syntax_glob=fg=#e0af68           # * ? [abc]
+ble-face syntax_delimiter=fg=#89ddff      # | ; && ||
+ble-face syntax_comment=fg=#565f89        # # trailing comment
+ble-face syntax_document=fg=#9ece6a       # heredoc body
+ble-face syntax_document_begin=fg=#9ece6a # <<EOF
+ble-face syntax_param_expansion=fg=#e0af68 # ${var:-default}
+ble-face syntax_varname=fg=#e0af68        # $var
+ble-face syntax_tilde=fg=#bb9af7          # ~, ~user
+ble-face syntax_history_expansion=fg=#ff9e64 # !!, !$
+ble-face syntax_error=fg=#f7768e          # unbalanced quote, stray ) ...
+ble-face argument_option=fg=#7dcfff       # --flag, -x
+ble-face argument_error=fg=#f7768e
+
+# --- words that name something on disk --------------------------------------
+# (ble.sh underlines these by default; the colour carries the meaning already)
+ble-face filename_directory=fg=#7aa2f7
+ble-face filename_directory_sticky=fg=#7aa2f7
+ble-face filename_executable=fg=#9ece6a
+ble-face filename_link=fg=#7dcfff
+ble-face filename_url=fg=#7aa2f7
+ble-face filename_other=none
+ble-face filename_ls_colors=none
+ble-face filename_orphan=fg=#f7768e       # dangling symlink
+ble-face filename_warning=fg=#f7768e
+ble-face filename_setuid=fg=#ff9e64       # all of these were black-on-yellow
+ble-face filename_setgid=fg=#ff9e64       # or white-on-black blocks
+ble-face filename_block=fg=#e0af68
+ble-face filename_character=fg=#e0af68
+ble-face filename_pipe=fg=#e0af68
+ble-face filename_socket=fg=#e0af68
+
+# --- variable names, coloured by what they are ------------------------------
+# Deliberately almost uniform: a plain $HOME should be ONE colour, not a yellow
+# "$" glued to an orange name. Only the two cases worth a warning stand out.
+ble-face varname_new=fg=#9ece6a           # first assignment in this shell
+ble-face varname_array=fg=#e0af68
+ble-face varname_hash=fg=#e0af68
+ble-face varname_expr=fg=#e0af68
+ble-face varname_number=fg=#e0af68
+ble-face varname_transform=fg=#e0af68
+ble-face varname_export=fg=#e0af68
+ble-face varname_readonly=fg=#ff9e64      # assigning to it will fail
+ble-face varname_empty=fg=#565f89         # set but empty
+ble-face varname_unset=fg=#565f89         # never set -- probably a typo
+
+# --- selection, search, and ble.sh's own UI ---------------------------------
+ble-face region=bg=#283457                # visual selection
+ble-face region_insert=bg=#283457
+ble-face region_match=bg=#3d59a1              # search hit: tinted, not inverted
+ble-face region_target=fg=#1a1b26,bg=#bb9af7  # the one hit you are on
+ble-face menu_filter_input=fg=#c0caf5,bg=#283457
+ble-face prompt_status_line=fg=#c0caf5,bg=#414868
+ble-face overwrite_mode=fg=#1a1b26,bg=#e0af68
+ble-face cmdinfo_cd_cdpath=fg=#565f89
+ble-face disabled=fg=#565f89

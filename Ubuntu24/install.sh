@@ -16,6 +16,7 @@ Options:
   --packages     Install CLI packages (apt)
   --fonts        Install FiraCode Nerd Font
   --starship     Install Starship + config
+  --blesh        Install ble.sh (inline autosuggestions while you type)
   --configs      Install Bash/Tmux configs
   --alacritty    Install Alacritty + config
   --help         Show this help
@@ -40,14 +41,15 @@ EOF
 
 [[ $# -eq 0 ]] && { usage; exit 1; }
 
-do_packages=0 do_fonts=0 do_starship=0 do_configs=0 do_alacritty=0
+do_packages=0 do_fonts=0 do_starship=0 do_blesh=0 do_configs=0 do_alacritty=0
 
 for arg in "$@"; do
     case "$arg" in
-        --all)       do_packages=1; do_fonts=1; do_starship=1; do_configs=1; do_alacritty=1 ;;
+        --all)       do_packages=1; do_fonts=1; do_starship=1; do_blesh=1; do_configs=1; do_alacritty=1 ;;
         --packages)  do_packages=1  ;;
         --fonts)     do_fonts=1     ;;
         --starship)  do_starship=1  ;;
+        --blesh)     do_blesh=1     ;;
         --configs)   do_configs=1   ;;
         --alacritty) do_alacritty=1 ;;
         --help|-h)   usage; exit 0  ;;
@@ -66,6 +68,8 @@ done
 if [[ $do_packages  -eq 1 ]]; then "$ROOT_DIR/scripts/install-packages.sh";  fi
 if [[ $do_fonts     -eq 1 ]]; then "$ROOT_DIR/scripts/install-fonts.sh";     fi
 if [[ $do_starship  -eq 1 ]]; then "$ROOT_DIR/scripts/install-starship.sh";  fi
+# before --configs: the .bashrc it deploys sources ble.sh if it is there.
+if [[ $do_blesh     -eq 1 ]]; then "$ROOT_DIR/scripts/install-blesh.sh";     fi
 if [[ $do_configs   -eq 1 ]]; then "$ROOT_DIR/scripts/install-configs.sh";   fi
 if [[ $do_alacritty -eq 1 ]]; then "$ROOT_DIR/scripts/install-alacritty.sh"; fi
 

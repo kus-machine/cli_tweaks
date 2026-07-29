@@ -8,6 +8,35 @@ case $- in
       *) return;;
 esac
 
+
+# ---------------------------------------------------------------------------
+# ble.sh  --  fish-style inline autosuggestions (grey text after the cursor)
+# ---------------------------------------------------------------------------
+# Plain readline cannot show a suggestion while you type. ble.sh (Bash Line
+# Editor) replaces bash's line editor and adds it -- the same feel as
+# zsh-autosuggestions on macOS and PSReadLine's InlinePrediction on Windows.
+#
+# Installed by  ./install.sh --blesh  into ~/.local/share/blesh (there is no
+# apt package for it on Ubuntu 24.04). Absent = this block is skipped and the
+# shell behaves exactly as before.
+#
+# Load order matters and is deliberately split in two:
+#   * source ... --attach=none  goes HERE, first, so everything below
+#     (bash-completion, fzf, starship, our `bind` lines) is registered through
+#     ble.sh's emulation layer instead of raw readline. starship in particular
+#     checks $BLE_VERSION at init time to hook itself in the ble.sh way.
+#   * ble-attach goes at the very END of this file. In between, ble.sh is
+#     loaded but not yet driving the terminal.
+# Do not collapse the two halves into one.
+#
+# ble.sh's own settings -- how eager the suggestion is, and the Tokyo Night
+# palette for the line you type -- live in ~/.blerc, which ble.sh sources by
+# itself. Keep bleopt/ble-face lines out of this file and edit ~/.blerc instead
+# (repo: Ubuntu24/configs/.blerc).
+if [[ -s "$HOME/.local/share/blesh/ble.sh" ]]; then
+    source "$HOME/.local/share/blesh/ble.sh" --attach=none
+fi
+
 # don't put duplicate lines or lines starting with space in the history.
 # See bash(1) for more options
 HISTCONTROL=ignoreboth:erasedups
@@ -116,14 +145,23 @@ export FZF_DEFAULT_COMMAND="fdfind --type f --hidden$FDFIND_EXCLUDES"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_ALT_C_COMMAND="fdfind --type d --hidden$FDFIND_EXCLUDES"
 
-# Enable fzf keybindings (Ubuntu 24.04 apt installation)
-if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
-    source /usr/share/doc/fzf/examples/key-bindings.bash
-fi
+if [[ ${BLE_VERSION-} ]]; then
+    # ble.sh ships its own fzf integration and it must be used instead of the
+    # stock scripts: those bind Ctrl+R/Ctrl+T through readline, which ble.sh no
+    # longer uses, and fzf's Ctrl+R would fight ble.sh over the history widget.
+    # The modules locate Ubuntu's /usr/share/doc/fzf/examples themselves.
+    ble-import -d integration/fzf-completion
+    ble-import -d integration/fzf-key-bindings
+else
+    # Enable fzf keybindings (Ubuntu 24.04 apt installation)
+    if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
+        source /usr/share/doc/fzf/examples/key-bindings.bash
+    fi
 
-# Enable fzf completion (Debian/Ubuntu specific path)
-if [ -f /usr/share/bash-completion/completions/fzf ]; then
-    source /usr/share/bash-completion/completions/fzf
+    # Enable fzf completion (Debian/Ubuntu specific path)
+    if [ -f /usr/share/bash-completion/completions/fzf ]; then
+        source /usr/share/bash-completion/completions/fzf
+    fi
 fi
 
 
@@ -148,5 +186,23 @@ bind "set mark-symlinked-directories on"
 
 
 # Enable history search with UP/DOWN
-bind '"\e[A": history-search-backward'
-bind '"\e[B": history-search-forward'
+#
+# Only when ble.sh is NOT running. Its readline emulation would accept these
+# and turn them into an interactive nsearch session with a
+# "(nsearch#1: << !504 >>)" status line instead of readline's instant
+# replace-the-line. ~/.blerc binds the arrows properly for that case, and a
+# `bind` here would silently overwrite it.
+if [[ ! ${BLE_VERSION-} ]]; then
+    bind '"\e[A": history-search-backward'
+    bind '"\e[B": history-search-forward'
+fi
+
+
+# ---------------------------------------------------------------------------
+# ble.sh, part two: attach. MUST be the last thing in this file -- see the
+# block at the top. Nothing that binds keys or touches PROMPT_COMMAND should
+# come after it.
+# ---------------------------------------------------------------------------
+if [[ ${BLE_VERSION-} ]]; then
+    ble-attach
+fi

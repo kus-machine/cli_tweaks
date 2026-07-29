@@ -59,6 +59,7 @@ Installs:
 - .bashrc
 - .bash_aliases
 - .tmux.conf
+- .blerc (ble.sh settings + palette — inert if ble.sh is not installed)
 
 Your original files are captured **once**, on the first install, into
 `~/.local/state/cli_tweaks/pristine/` (plus one timestamped `.bak` beside the
@@ -86,6 +87,50 @@ Provides:
 ```bash
 ./install.sh --starship
 ```
+
+---
+
+### --blesh
+
+Installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor) into
+`~/.local/share/blesh`.
+
+Provides:
+
+- **Inline autosuggestions** — grey completion of the command you are typing,
+  drawn from your history, exactly like zsh-autosuggestions on macOS and
+  PSReadLine's InlinePrediction on Windows. `Right`/`End`/`Ctrl+F` accept it,
+  `Ctrl+Right`/`Alt+F` accept one word, `Ctrl+G` dismisses it.
+- **Syntax highlighting of the line you type**, re-themed to Tokyo Night so it
+  matches the terminal (`shared/alacritty.toml`) instead of ble.sh's default
+  palette — which paints builtins red, globs hot pink and puts white-on-red
+  blocks behind errors. The whole palette lives in `configs/.blerc`
+  (deployed to `~/.blerc`, which ble.sh sources by itself):
+
+  | | |
+  |---|---|
+  | external command (`git`) | blue `#7aa2f7` |
+  | builtin (`cd`, `echo`) | cyan `#7dcfff` |
+  | your alias / function (`l`, `tr`) | teal `#73daca` |
+  | keyword (`if`, `for`) | magenta `#bb9af7` |
+  | `"string"` / heredoc | green `#9ece6a` |
+  | `$var`, `${...}`, globs, braces | yellow `#e0af68` |
+  | `\|`, `;`, `&&` | light blue `#89ddff` |
+  | comment, unset var, hints | grey `#565f89` |
+  | syntax error, dangling symlink | red `#f7768e` |
+
+  No underlines, no bold, no background blocks — hue only. Turn a whole layer
+  off with `bleopt highlight_syntax=` / `highlight_filename=` /
+  `highlight_variable=` in `~/.blerc`.
+
+```bash
+./install.sh --blesh
+```
+
+There is no `blesh` apt package on Ubuntu 24.04, so the installer downloads
+upstream's prebuilt nightly tarball (no build tools needed). `--configs` is what
+actually wires it into `.bashrc`; installing one without the other is harmless —
+the `.bashrc` block is guarded and simply does nothing if ble.sh is missing.
 
 ---
 
@@ -121,6 +166,7 @@ This installs:
 - Bash configuration
 - Tmux configuration
 - Starship
+- ble.sh (inline autosuggestions)
 - Alacritty
 
 ---
@@ -152,7 +198,9 @@ it **without ever removing something that was already on the machine**.
 ```
 
 `--configs` is the "make my shell normal again" button. `--full` additionally
-apt-removes only the packages whose manifest entry says `preexisting: false`.
+apt-removes only the packages whose manifest entry says `preexisting: false`,
+and deletes `~/.local/share/blesh` + `~/.cache/blesh` if we were the ones who
+put ble.sh there.
 
 The pristine copies are deliberately kept after `--full`, so a later re-install
 still has your real originals to fall back on. Delete
@@ -177,6 +225,67 @@ Terminal while continuing to work inside tmux — because tmux starts a *login*
 shell, where `/etc/profile.d/bash_completion.sh` has already loaded
 bash-completion before `~/.bashrc` runs. The long comment above that block in
 `configs/.bashrc` explains the mechanism.
+
+---
+
+## Keys on the command line (with ble.sh)
+
+| Key | What it does |
+|-----|--------------|
+| `Right` / `End` / `Ctrl+F` | accept the whole grey suggestion |
+| `Ctrl+Right` / `Alt+F` | accept one word of it |
+| `Esc` (or `Ctrl+G`) | dismiss the suggestion |
+| `UP` / `DOWN` | prefix history search — type `cd `, press UP, walk older matches. Instant, readline-style: no status line, and the recalled line is *not* left selected, so you can keep typing on it |
+| `Tab` | complete; a second `Tab` opens the candidate menu |
+| *(in the menu)* type anything | drops the highlighted candidate, inserts your character and narrows the list — keep typing, then `Tab` again for fewer candidates |
+| *(in the menu)* `Tab` / `Shift+Tab` / arrows | move through candidates |
+| *(in the menu)* `Enter` | take the highlighted candidate |
+| *(in the menu)* `Esc` / `Ctrl+C` / `Ctrl+G` | leave the menu, line back the way you typed it |
+| `Ctrl+T` / `Ctrl+R` / `Alt+C` | fzf: files / history / cd |
+
+**`Esc` is the universal way out**: it drops the grey suggestion, leaves the Tab
+menu, and abandons a history or incremental search — everywhere ble.sh offers
+only `Ctrl+G`. `Ctrl+G` keeps working; `Esc` is just the second, obvious key. At
+a plain prompt it does nothing, quietly.
+
+If `Esc` instead prints something like `unbound keyseq: C-M-[ C-M-[`, that shell
+was started before this config landed — `~/.blerc` is only read when the shell
+starts. Open a new terminal and check with:
+
+```bash
+bleopt decode_isolated_esc     # must print: bleopt decode_isolated_esc=esc
+```
+
+None of that is stock ble.sh — `configs/.blerc` rebinds it. Out of the box
+`Ctrl+G` is the only escape hatch (everything else beeps "unbound keyseq"),
+typing in the menu keeps the highlighted candidate so a long list can only be
+narrowed by deleting it by hand first, and UP/DOWN open an interactive search
+session that parks a `(nsearch#1: << !504 >>)` status line and leaves the result
+selected — where the next character you type replaces it.
+
+---
+
+## No grey suggestions while typing?
+
+They come from ble.sh, not from Alacritty — a terminal cannot do this, only the
+line editor can. Check, in order:
+
+```bash
+ls ~/.local/share/blesh/ble.sh   # installed?      -> ./install.sh --blesh
+echo "$BLE_VERSION"              # loaded?         -> ./install.sh --configs
+```
+
+`.bashrc` loads ble.sh in **two halves**: `source .../ble.sh --attach=none` at
+the very top (so bash-completion, fzf, starship and the `bind` lines below all
+register through ble.sh) and `ble-attach` as the very last line of the file.
+Merging them, or adding key/prompt setup after `ble-attach`, breaks the setup.
+
+Under ble.sh the fzf keybindings come from ble.sh's own
+`integration/fzf-{completion,key-bindings}` modules instead of
+`/usr/share/doc/fzf/examples/key-bindings.bash` — the stock script binds through
+readline, which ble.sh has replaced, and its `Ctrl+R` would fight ble.sh over
+the history widget. `.bashrc` keeps the stock path only as the no-ble.sh
+fallback.
 
 ---
 

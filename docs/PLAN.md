@@ -4,7 +4,7 @@
 Windows 11, and remote SSH targets (Raspberry Pi) — plus a clean, reworked set
 of installers and a good SSH config.
 
-_Last updated: 2026-07-12._
+_Last updated: 2026-07-28._
 
 ## Locked decisions
 
@@ -64,6 +64,61 @@ _Last updated: 2026-07-12._
   Verified via dry run: it **skips packages flagged pre-existing**.
 - Added `windows/README.md`.
 
+### Ubuntu: inline autosuggestions (done, 2026-07-28)
+- New component **`./install.sh --blesh`**: installs ble.sh (Bash Line Editor)
+  from upstream's prebuilt nightly tarball into `~/.local/share/blesh`. No apt
+  package exists; the last tagged release is from 2023 and predates the
+  fzf/starship integrations.
+- `.bashrc` loads it in two halves — `--attach=none` at the very top,
+  `ble-attach` as the very last line — so bash-completion, fzf, starship and the
+  `bind` lines register through ble.sh's emulation layer. starship ≥ 1.22 keys
+  off `$BLE_VERSION` at init time and hooks itself in via `blehook`.
+- fzf under ble.sh comes from `integration/fzf-{completion,key-bindings}`; the
+  stock Debian scripts stay as the no-ble.sh fallback.
+- Suggestion face pinned to `fg=242` to match Windows' `InlinePrediction`
+  (ble.sh's default `fg=238,bg=254` is a light block, unreadable on Tokyo Night).
+- ble.sh's default palette was rejected on sight (red builtins, blue keywords,
+  hot-pink globs, white-on-red error blocks — "windows98"). Replaced with a
+  **Tokyo Night palette** matching `shared/alacritty.toml`, in a new
+  `Ubuntu24/configs/.blerc` → `~/.blerc` (ble.sh's own init file, so all
+  `bleopt`/`ble-face` lines moved out of `.bashrc`). Hue only: no bold, no
+  underline, no background blocks; commands blue/cyan, own aliases+functions
+  teal, keywords magenta, strings green, `$vars` yellow, operators light blue,
+  comments+unset vars grey, errors red. Truecolor hex works in Alacritty and in
+  tmux (`.tmux.conf` already sets `Tc`).
+- **Editing-model fixes on top of stock ble.sh** (all in `.blerc`), after the
+  defaults proved unusable in real use:
+  - `UP`/`DOWN` → wrapper widgets that run `history-search-{backward,forward}
+    hide-status:point=end:immediate-accept` **and then clear `_ble_edit_mark_active`**.
+    Without the opts you get an interactive nsearch session with a
+    `(nsearch#1: << !504 >>)` status line; without the mark reset the recalled
+    line stays *selected*, and the next character typed replaces it.
+  - **`Esc` = cancel, everywhere** (`auto_complete`, `menu_complete`, `nsearch`,
+    `isearch`) — stock ble.sh binds only `Ctrl+G` and everything else beeps
+    "unbound keyseq". Three separate things had to be true for it to work:
+    `bleopt decode_isolated_esc=esc` (otherwise a lone `Esc` is held as the Meta
+    prefix and never dispatched); binding every name the key arrives under —
+    `ESC`, `C-[` and `C-M-[` (two Esc bytes composed as Meta, which is also what
+    a shell still running the old config produces: ble.sh answers it with
+    `unbound keyseq: C-M-[ C-M-[`, because `C-M-[ C-@` is a real stock binding
+    and it waits for a second key); and doing it at the right moment per keymap
+    (below). `Esc` is also bound to `nop` in the emacs keymap so that pressing
+    it with nothing to cancel is silent rather than an error.
+    `Ctrl+C` also leaves the Tab menu. Alt+<key> is unaffected — the terminal
+    sends those as one burst.
+  - Tab menu `__default__` → a local `menu_complete/cancel-default` widget, so
+    typing narrows the list instead of appending to the highlighted candidate.
+  - **Binding timing per keymap** (each keymap is built lazily and its `define`
+    drops anything bound earlier, so a bind straight from `.blerc` is silently
+    ignored): `nsearch`/`isearch` bind inside
+    `blehook/eval-after-load keymap_emacs`; `auto_complete`/`menu_complete` are
+    already built by the time the `complete` load hook runs, so their bindings
+    hang off `ble/function#advice after ble-decode/keymap:<name>/define`.
+- Manifest/uninstall: `record_dir` grew a `preexisting` flag, and
+  `uninstall.sh --full` now removes directory trees flagged as ours
+  (`~/.local/share/blesh`, `~/.cache/blesh`). A ble.sh the user installed
+  themselves is detected and left alone.
+
 _SSH config and the Raspberry Pi / remote profile are intentionally **plan-only**
 for now (below) — nothing implemented yet._
 
@@ -77,6 +132,8 @@ for now (below) — nothing implemented yet._
 3. **macOS rewrite to parity** (needs a Mac to test):
    - Add starship + `shared/starship.toml`.
    - eza `l`/`la`/`lss`, `tr`, `fin`; fzf + fd backend; zoxide; btop.
+   - Pin `ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=fg=242` so the grey suggestion matches
+     Ubuntu's ble.sh and Windows' PSReadLine.
    - Reconcile git aliases to `gs`/`gd`/`gl`.
    - Add `macos/install.sh` (brew-based, same component model).
 4. **SSH config (design + manual how-to doc; NOT auto-installed).** Cover:
