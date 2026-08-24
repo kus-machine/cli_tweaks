@@ -99,7 +99,11 @@ touch the others (or explicitly note the gap in PARITY.md):
   `C-M-[` (two Esc bytes composed as Meta) — and none of them arrive at all
   without `bleopt decode_isolated_esc=esc`. A report of
   `unbound keyseq: C-M-[ C-M-[` means the shell predates the config: `~/.blerc`
-  is read once, at shell start. *The mark*: with `_ble_edit_mark_active`
+  is read once, at shell start. The same key-name trap exists for the Backspace
+  family: Ctrl+Backspace arrives as the byte 0x08 = key `C-h` (Alacritty, GNOME
+  Terminal and tmux send nothing fancier), and Alt+Backspace (Esc + 0x7f)
+  decodes as `C-M-?` — binding `M-DEL` alone looks right in `ble-bind -P` but
+  never fires. Bind every alias, like `.blerc`'s word-delete loop does. *The mark*: with `_ble_edit_mark_active`
   set, the next character typed REPLACES the marked region — that is why the
   history-search wrappers in `.blerc` clear it.
 - **Clipboard: never rely on OSC 52.** tmux's default `set-clipboard external`

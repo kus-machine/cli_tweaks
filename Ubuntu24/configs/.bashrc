@@ -195,6 +195,14 @@ bind "set mark-symlinked-directories on"
 if [[ ! ${BLE_VERSION-} ]]; then
     bind '"\e[A": history-search-backward'
     bind '"\e[B": history-search-forward'
+
+    # Word deletion, mirroring the ble.sh bindings in ~/.blerc. Ctrl+Backspace
+    # arrives as the byte 0x08 (^H) -- Alacritty/GNOME Terminal/tmux send
+    # nothing fancier -- so Ctrl+H deletes a word too; accepted. Alt+Backspace
+    # (\e\x7f) is already backward-kill-word by readline default. Ctrl+Del has
+    # no default binding in readline at all, hence the \e[3;5~ line.
+    bind '"\C-h": backward-kill-word'
+    bind '"\e[3;5~": kill-word'
 fi
 
 

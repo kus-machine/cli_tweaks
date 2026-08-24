@@ -106,6 +106,34 @@ function ble/widget/blerc/copy-to-clipboard {
     _ble_edit_mark_active=
 }
 
+# ---------------------------------------------------------------------------
+# Ctrl+Backspace / Alt+Backspace  --  delete the word LEFT of the cursor
+# ---------------------------------------------------------------------------
+# ble.sh's defaults make both keys look dead:
+#   * Ctrl+Backspace reaches the shell as the byte 0x08 (`C-h` in ble.sh's key
+#     names) -- Alacritty, GNOME Terminal and tmux all send that, there is no
+#     separate "Ctrl+Backspace" sequence at this protocol level. ble.sh binds
+#     C-h to delete-backward-CHAR, so it just repeats what plain Backspace does.
+#   * Alt+Backspace arrives as Esc + 0x7f = `M-DEL`, which ble.sh binds to
+#     copy-backward-sword: it silently COPIES the word to the kill-ring and
+#     deletes nothing. Looks like a no-op.
+#
+# Rebind both to delete-backward-cword -- the exact mirror of the defaults that
+# already work: C-delete (Ctrl+Del) is delete-forward-cword and C-left/C-right
+# jump by cword, so one Ctrl+Backspace eats exactly one Ctrl+Left of travel.
+# delete-region-or: if a Shift+arrow selection is active, delete that instead
+# (same convention as ble.sh's own Backspace/Del bindings).
+#
+# Side effect, accepted: Ctrl+H is byte-identical to Ctrl+Backspace, so it
+# deletes a word too.
+#
+# Each key is bound under EVERY name ble.sh can decode it to (mirroring how
+# ble.sh's own defaults cover C-?/DEL/C-h/BS for plain Backspace): Esc+0x7f
+# actually decodes as `M-C-?`, not `M-DEL` -- bind only the latter and
+# Alt+Backspace stays dead (found the hard way). C-BS/C-DEL/M-BS are what the
+# keys become under a CSI-u / kitty-protocol terminal (none in use today;
+# bound for future-proofing), and M-C-h is Esc + 0x08 = Ctrl+Alt+Backspace.
+#
 # The emacs keymap is loaded lazily, hence the hook. ~/.bashrc deliberately does
 # NOT `bind` the arrows when ble.sh is active -- that would overwrite these.
 function blerc/emacs-load-hook {
@@ -113,6 +141,10 @@ function blerc/emacs-load-hook {
     ble-bind -m emacs -f down blerc/history-search-forward
     ble-bind -m emacs -f 'M-w'      blerc/copy-to-clipboard
     ble-bind -m emacs -f 'C-insert' blerc/copy-to-clipboard
+    local key
+    for key in 'C-h' 'C-BS' 'C-DEL' 'M-DEL' 'M-C-?' 'M-C-h' 'M-BS'; do
+        ble-bind -m emacs -f "$key" 'delete-region-or delete-backward-cword'
+    done
 }
 blehook/eval-after-load keymap_emacs blerc/emacs-load-hook
 

@@ -61,6 +61,11 @@ if ((Get-Module -ListAvailable PSReadLine) -and -not [Console]::IsOutputRedirect
     # Alt+arrow / Ctrl+arrow word jumps
     Set-PSReadLineKeyHandler -Key Ctrl+LeftArrow  -Function BackwardWord
     Set-PSReadLineKeyHandler -Key Ctrl+RightArrow -Function ForwardWord
+    # Word deletion, matching Linux (ble.sh) and macOS (zsh). These are
+    # PSReadLine's Windows-mode defaults; pinned explicitly so the cross-shell
+    # parity survives a PSReadLine edit-mode change.
+    Set-PSReadLineKeyHandler -Key Ctrl+Backspace -Function BackwardKillWord
+    Set-PSReadLineKeyHandler -Key Ctrl+Delete    -Function KillWord
     # Bash-like Tab: show a navigable list of candidates, auto-complete when
     # there is only one match (instead of cycling through them one by one).
     Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete

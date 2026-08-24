@@ -22,7 +22,8 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | System monitor        | **btop** (`top`/`htop`)             | ✅       | 🚫          | ✅ (btop4win)   |
 | Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅       | ✅          | 🚫 (no tmux)    |
 | Copy to clipboard     | tmux copy-pipe + `Alt+W` on the line | ✅ xclip | 🟡 pbcopy, untested | 🟡 terminal only |
-| Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | ✅          | ✅              |
+| Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | 🟡 blind, untested | ✅       |
+| Word-delete keys      | Ctrl/Alt+Backspace ⌫word, Ctrl+Del word⌦ | ✅ ble.sh + readline fallback | 🟡 blind, untested | ✅ PSReadLine, pinned |
 | Uninstall / revert    | manifest-driven uninstaller          | ✅       | 📝          | ✅              |
 
 Windows was installed and verified on 2026-07-12 (Windows 11, pwsh 7.6.3): all

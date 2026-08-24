@@ -37,6 +37,19 @@ bindkey "^[b" backward-word      # Alt+B = jump back one word
 bindkey "^[f" forward-word       # Alt+F = jump forward one word
 bindkey "^[d" kill-word          # Alt+D = delete next word
 
+# Word jumps / word deletion, matching Linux (ble.sh) and Windows (PSReadLine).
+# Ctrl+Backspace reaches the shell as the byte ^H in Alacritty/iTerm2 (macOS
+# Terminal.app cannot distinguish it from plain Backspace); Ctrl+Del and
+# Ctrl+arrows arrive as xterm-style CSI sequences. Alt+Backspace is zsh's
+# default backward-kill-word already -- kept explicit for the record.
+# NOTE: added blind from Linux -- still needs validation on real mac hardware.
+bindkey '^[[1;5C' forward-word         # Ctrl+Right
+bindkey '^[[1;5D' backward-word        # Ctrl+Left
+bindkey '^H' backward-kill-word        # Ctrl+Backspace
+bindkey '^[^?' backward-kill-word      # Alt+Backspace
+bindkey '^[[3;5~' kill-word            # Ctrl+Del
+bindkey '^[[3~' delete-char            # Del (often unbound in zsh by default)
+
 # Search history based on current input
 bindkey '^[[A' history-search-backward
 bindkey '^[[B' history-search-forward
