@@ -340,6 +340,39 @@ selected — where the next character you type replaces it.
 
 ---
 
+## tmux tabs
+
+tmux windows are tabs, each with its own panes. `.tmux.conf` shows them in a
+two-line bar at the **top**: the tabs (the active one in blue; named after
+the folder, or the program running in it) with session and time on the right
+(plus user@host and date in windows of 110+ columns), and under them a hint
+line that follows what you are doing:
+
+- normally — the tab keys below;
+- right after `Ctrl+B` — a yellow `Ctrl+B …` badge, and the keys that may
+  follow (`z` zoom, `Ctrl+arrows` resize, `d` detach, `?` all commands);
+- in copy / scroll mode — a `COPY` badge and its keys; in `Ctrl+B w` — the
+  keys of the tab list.
+
+tmux's own prompts and messages (rename, "close tab?", "Config reloaded")
+also appear on that second line, so they never cover the tabs or the clock.
+
+| Key | Does |
+|---|---|
+| `Alt+1` … `Alt+9`, or a click | go to tab N |
+| `Alt+T` | new tab, in the current folder |
+| `Alt+N` / `Alt+K` | rename the tab / close tab (asks first; Enter = yes) |
+| `Ctrl+B w` | all tabs with previews |
+
+New tabs and new panes (`Ctrl+B |`, `-`) open in the folder of the pane you
+are in, not the folder the session was started from. None of the tab keys
+need `Ctrl+B`. Inside tmux, `Alt+1..9` and `Alt+T` belong to tmux (in the
+shell they were readline's digit-argument and transpose-words); `Alt+N` and
+`Alt+K` were free. `Ctrl+K` was not used on purpose: it is the shell's
+delete-to-end-of-line.
+
+---
+
 ## Copying text out of the terminal
 
 Three different selections exist and they are easy to confuse. Which one you get
@@ -354,6 +387,21 @@ depends on whether tmux is running and whether Shift is held:
 | **On the command line** | `Shift`+arrows | `Alt+W` (with nothing selected it copies the whole line) |
 
 Paste is unchanged: `Ctrl+Shift+V`, or middle-click for the primary selection.
+A paste that ends in a newline (a triple-clicked line, most copies from a
+browser) has that **one trailing newline dropped** by `~/.blerc`, so a single
+line lands as a normal editable line instead of switching ble.sh to
+`-- MULTILINE --`. Real multi-line pastes still get MULTILINE.
+
+**With the Ukrainian layout on**, `Ctrl+Shift+C/V`, `Ctrl+C`, `Ctrl+R`,
+`Alt+C` and every other `Ctrl+letter` / `Alt+letter` work exactly as on the
+Latin layout. Alacritty matches bindings against the character the active
+layout produces (`Ctrl+Shift+М`, not `V`); `shared/alacritty.toml` maps every
+Ukrainian letter back to the Latin key on the same key cap, the way GNOME
+Terminal does on its own. tmux gets the same treatment: every prefix key
+in use is bound a second time under its Ukrainian letter (`Ctrl+B в` =
+detach, `Ctrl+B с` = new window, `Ctrl+B ґ` = split right, since `|` needs
+AltGr there). Only `x` / `&` (kill pane / window, whose confirmation takes a
+Latin `y`) and `$` (rename session) still need the Latin layout.
 
 Why the old way fought you: **under tmux, `Shift`+drag + `Ctrl+Shift+C` can never
 scroll**. That selection belongs to Alacritty, and while tmux is running

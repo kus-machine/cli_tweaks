@@ -150,6 +150,26 @@ blehook/eval-after-load keymap_emacs blerc/emacs-load-hook
 
 
 # ---------------------------------------------------------------------------
+# Paste  --  drop ONE trailing newline
+# ---------------------------------------------------------------------------
+# A triple-click (a whole line) and many other copies end in "\n". Pasted
+# as-is, ble.sh sees a two-line command and switches to
+#     -- MULTILINE -- (RET or C-m: insert a newline, C-j: run)
+# for what is really one line. So strip a single trailing newline from every
+# paste. Real multi-line pastes keep their inner newlines (and still get the
+# editable MULTILINE mode), just without an empty last line.
+#
+# bracketed-paste.proc receives the pasted text as character codes (CR / CRLF
+# already turned into LF = 10). A `before` advice may edit ADVICE_WORDS, the
+# argument list the original function is then called with ([0] is its name).
+ble/function#advice before ble/widget/bracketed-paste.proc '
+    local n=${#ADVICE_WORDS[@]}
+    if ((n > 1 && ADVICE_WORDS[n-1] == 10)); then
+        builtin unset -v "ADVICE_WORDS[n-1]"
+    fi'
+
+
+# ---------------------------------------------------------------------------
 # The Tab menu  --  double-Tab opens the candidate browser (menu_complete)
 # ---------------------------------------------------------------------------
 # Getting OUT of that menu is the problem: ble.sh binds Ctrl+G and nothing else,

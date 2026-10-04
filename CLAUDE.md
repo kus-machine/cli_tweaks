@@ -161,6 +161,19 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   never fires. Bind every alias, like `.blerc`'s word-delete loop does. *The mark*: with `_ble_edit_mark_active`
   set, the next character typed REPLACES the marked region — that is why the
   history-search wrappers in `.blerc` clear it.
+- **tmux tabs live at the top.** `status 2` + `status-position top`: line 0
+  is tmux's default tab list (styled via `window-status-*`), line 1 is
+  `status-format[1]`, a hint line that switches by state (`client_prefix`,
+  `pane_mode` copy-mode / tree-mode). Its texts are the `@hint-*` options —
+  each ≤ 79 columns, pulled in with `#{@name}` so commas in the text cannot
+  break the `#{?...}` around them. `message-line 1` puts prompts/messages on
+  that line too. The right side drops user@host + date below 110 columns,
+  otherwise it pushes the tabs off an 80-column window. tmux cannot split status
+  lines between top and bottom. Root bindings `M-1..M-9` / `M-t` / `M-n`
+  (rename) / `M-k` (close, with confirm) for tabs, and
+  `M-arrows` (panes) are tmux's — don't bind those in ble.sh/zsh for use
+  inside tmux. New panes/windows use `-c "#{pane_current_path}"`; keep that on
+  any new split/new-window binding, including its Ukrainian twin.
 - **Clipboard: never rely on OSC 52.** tmux's default `set-clipboard external`
   reaches Alacritty only under some `TERM` values (the "copies sometimes work"
   bug). Both tmux configs pipe copies through `xclip` (macOS: `pbcopy`), so
@@ -169,6 +182,19 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   table only when `mode-keys` is vi; ours is emacs). In `.blerc`, write
   clipboard text with `ble/util/put` — `ble/util/print` appends a newline, which
   submits the line when pasted.
+- **Alacritty + a Cyrillic layout**: bindings match the character the
+  *active layout* produces, so `{ key = "V", mods = "Control|Shift" }` never
+  fires on the Ukrainian layout (it is `М` there), and `Ctrl`/`Alt`+letter
+  sent the Cyrillic letter instead of a control code. `shared/alacritty.toml`
+  has a generated `[keyboard] bindings` block mapping every Ukrainian letter
+  to the Latin key on the same cap (chars bindings carry
+  `mode = "~Vi|~Search"`). Any new Alacritty binding on a letter needs its
+  Cyrillic twin there too — and so does any new tmux prefix key (both
+  `tmux.conf`s end with a "same keys on the Ukrainian layout" block; the
+  layout is xkb `ua(unicode)`: `ґ` sits on the `\|` key, `ж` on `;`).
+- **Pasting drops one trailing newline** (`.blerc`, advice on
+  `ble/widget/bracketed-paste.proc`), so a triple-clicked line does not open
+  ble.sh's MULTILINE mode.
 - **Alacritty is not where autosuggestions live.** A terminal emulator cannot
   draw them; the line editor does. Grey-text bugs are ble.sh/`.bashrc` bugs.
 - **Alacritty needs working OpenGL/GLX.** A `BadValue … BadAttribute` startup

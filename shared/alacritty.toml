@@ -59,3 +59,87 @@ blue    = "#7aa2f7"
 magenta = "#bb9af7"
 cyan    = "#7dcfff"
 white   = "#c0caf5"
+
+# ---------------------------------------------------------------------------
+# Keys on a Cyrillic layout (Ukrainian)
+# ---------------------------------------------------------------------------
+# Alacritty matches a binding against the character the CURRENT layout
+# produces. With the Ukrainian layout on, Ctrl+Shift+V is Ctrl+Shift+"М", so
+# the stock Copy/Paste bindings never fire, and Ctrl+C / Ctrl+R / Alt+C ... send
+# a Cyrillic letter instead of the control code the shell expects. GNOME
+# Terminal (VTE) silently falls back to the Latin key on the same key cap;
+# Alacritty does not, so these bindings do it explicitly.
+#
+# Each Cyrillic letter is the one on the same physical key as the Latin letter
+# in the comment (xkb "ua" layout). Most also cover the Russian layout; its
+# ы / э / ъ keys (s / ' / ]) are not listed. A binding that Alacritty would
+# already handle by itself just sends the same bytes again -- harmless. The
+# chars bindings are off in Alacritty's own search and Vi modes, where a key
+# must drive that mode instead of going to the shell.
+[keyboard]
+bindings = [
+  # --- terminal actions: Ctrl+Shift+<key> ------------------------------------
+  { key = "С", mods = "Control|Shift", action = "Copy" },            # C
+  { key = "М", mods = "Control|Shift", action = "Paste" },           # V
+  { key = "А", mods = "Control|Shift", action = "SearchForward" },   # F
+  { key = "И", mods = "Control|Shift", action = "SearchBackward" },  # B
+
+  # --- Ctrl+<letter>: the control code of the Latin letter -------------------
+  { key = "Ф", mods = "Control", mode = "~Vi|~Search", chars = "\u0001" },  # Ctrl+A
+  { key = "И", mods = "Control", mode = "~Vi|~Search", chars = "\u0002" },  # Ctrl+B
+  { key = "С", mods = "Control", mode = "~Vi|~Search", chars = "\u0003" },  # Ctrl+C
+  { key = "В", mods = "Control", mode = "~Vi|~Search", chars = "\u0004" },  # Ctrl+D
+  { key = "У", mods = "Control", mode = "~Vi|~Search", chars = "\u0005" },  # Ctrl+E
+  { key = "А", mods = "Control", mode = "~Vi|~Search", chars = "\u0006" },  # Ctrl+F
+  { key = "П", mods = "Control", mode = "~Vi|~Search", chars = "\u0007" },  # Ctrl+G
+  { key = "Р", mods = "Control", mode = "~Vi|~Search", chars = "\u0008" },  # Ctrl+H
+  { key = "Ш", mods = "Control", mode = "~Vi|~Search", chars = "\u0009" },  # Ctrl+I
+  { key = "О", mods = "Control", mode = "~Vi|~Search", chars = "\u000a" },  # Ctrl+J
+  { key = "Л", mods = "Control", mode = "~Vi|~Search", chars = "\u000b" },  # Ctrl+K
+  { key = "Д", mods = "Control", mode = "~Vi|~Search", chars = "\u000c" },  # Ctrl+L
+  { key = "Ь", mods = "Control", mode = "~Vi|~Search", chars = "\u000d" },  # Ctrl+M
+  { key = "Т", mods = "Control", mode = "~Vi|~Search", chars = "\u000e" },  # Ctrl+N
+  { key = "Щ", mods = "Control", mode = "~Vi|~Search", chars = "\u000f" },  # Ctrl+O
+  { key = "З", mods = "Control", mode = "~Vi|~Search", chars = "\u0010" },  # Ctrl+P
+  { key = "Й", mods = "Control", mode = "~Vi|~Search", chars = "\u0011" },  # Ctrl+Q
+  { key = "К", mods = "Control", mode = "~Vi|~Search", chars = "\u0012" },  # Ctrl+R
+  { key = "І", mods = "Control", mode = "~Vi|~Search", chars = "\u0013" },  # Ctrl+S
+  { key = "Е", mods = "Control", mode = "~Vi|~Search", chars = "\u0014" },  # Ctrl+T
+  { key = "Г", mods = "Control", mode = "~Vi|~Search", chars = "\u0015" },  # Ctrl+U
+  { key = "М", mods = "Control", mode = "~Vi|~Search", chars = "\u0016" },  # Ctrl+V
+  { key = "Ц", mods = "Control", mode = "~Vi|~Search", chars = "\u0017" },  # Ctrl+W
+  { key = "Ч", mods = "Control", mode = "~Vi|~Search", chars = "\u0018" },  # Ctrl+X
+  { key = "Н", mods = "Control", mode = "~Vi|~Search", chars = "\u0019" },  # Ctrl+Y
+  { key = "Я", mods = "Control", mode = "~Vi|~Search", chars = "\u001a" },  # Ctrl+Z
+  { key = "Х", mods = "Control", mode = "~Vi|~Search", chars = "\u001b" },  # Ctrl+[  (= Esc)
+  { key = "Ї", mods = "Control", mode = "~Vi|~Search", chars = "\u001d" },  # Ctrl+]
+
+  # --- Alt+<letter>: Esc + the Latin letter (Alt+F, Alt+W, Alt+C ...) ----------
+  { key = "Ф", mods = "Alt", mode = "~Vi|~Search", chars = "\u001ba" },  # Alt+A
+  { key = "И", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bb" },  # Alt+B
+  { key = "С", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bc" },  # Alt+C
+  { key = "В", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bd" },  # Alt+D
+  { key = "У", mods = "Alt", mode = "~Vi|~Search", chars = "\u001be" },  # Alt+E
+  { key = "А", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bf" },  # Alt+F
+  { key = "П", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bg" },  # Alt+G
+  { key = "Р", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bh" },  # Alt+H
+  { key = "Ш", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bi" },  # Alt+I
+  { key = "О", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bj" },  # Alt+J
+  { key = "Л", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bk" },  # Alt+K
+  { key = "Д", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bl" },  # Alt+L
+  { key = "Ь", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bm" },  # Alt+M
+  { key = "Т", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bn" },  # Alt+N
+  { key = "Щ", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bo" },  # Alt+O
+  { key = "З", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bp" },  # Alt+P
+  { key = "Й", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bq" },  # Alt+Q
+  { key = "К", mods = "Alt", mode = "~Vi|~Search", chars = "\u001br" },  # Alt+R
+  { key = "І", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bs" },  # Alt+S
+  { key = "Е", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bt" },  # Alt+T
+  { key = "Г", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bu" },  # Alt+U
+  { key = "М", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bv" },  # Alt+V
+  { key = "Ц", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bw" },  # Alt+W
+  { key = "Ч", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bx" },  # Alt+X
+  { key = "Н", mods = "Alt", mode = "~Vi|~Search", chars = "\u001by" },  # Alt+Y
+  { key = "Я", mods = "Alt", mode = "~Vi|~Search", chars = "\u001bz" },  # Alt+Z
+  { key = "Ю", mods = "Alt", mode = "~Vi|~Search", chars = "\u001b." },  # Alt+.  (last argument)
+]

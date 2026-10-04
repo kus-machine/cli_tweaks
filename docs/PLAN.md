@@ -227,6 +227,9 @@ for now (below) — nothing implemented yet._
    - Pin `ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=fg=242` so the grey suggestion matches
      Ubuntu's ble.sh and Windows' PSReadLine.
    - Reconcile git aliases to `gs`/`gd`/`gl`.
+   - Alacritty: `[window] option_as_alt = "Both"` (macOS-only key), or every
+     `Alt+…` binding — word jumps, tmux `Alt+1..9`/`Alt+T`/`Alt+arrows` —
+     types a special character instead.
    - Add `macos/install.sh` (brew-based, same component model).
 4. **SSH config (design + manual how-to doc; NOT auto-installed).** Cover:
    autoconnect (ControlMaster multiplexing), auto-disconnect on dead links

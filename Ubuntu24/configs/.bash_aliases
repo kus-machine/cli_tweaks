@@ -290,15 +290,24 @@ Ctrl+Y	paste what you deleted last
 Ctrl+← →	jump one word
 
 # TMUX  (press Ctrl+B, release, then the key)
+Alt+1 … Alt+9	go to tab N (or click it in the top bar)
+Alt+T	new tab, in the current folder
+Alt+N   Alt+K	rename the tab · close tab (asks: Enter = yes)
+Ctrl+B w	all tabs with previews · ↑ ↓ then Enter
 Ctrl+B |   Ctrl+B -	split the pane right · below
 Alt+← ↑ → ↓	move between panes
-Ctrl+B c   Ctrl+B n	new window · next window
+Ctrl+B Ctrl+← ↑ → ↓	resize the pane (keep pressing the arrow)
+Ctrl+B z	zoom the pane to the whole tab and back
+Ctrl+B ?	all tmux commands list (q to close)
 Shift+PgUp, mouse wheel	scroll back (q or Esc to stop)
 drag, 2×click, 3×click	copy the selection · word · line
 Ctrl+B d   Ctrl+B r	detach (session keeps running) · reload config
+Ukrainian layout	the same keys work (Ctrl+B ґ splits right)
 
 # TERMINAL
 select with the mouse	copied already · Ctrl+Shift+V pastes
 middle click	paste the current selection
+paste one line	its trailing newline is dropped: no MULTILINE
+Ukrainian layout	Ctrl+… and Alt+… keys work as on the Latin one
 KEYS
 }
