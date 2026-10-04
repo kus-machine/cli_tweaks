@@ -231,6 +231,23 @@ blehook/eval-after-load complete blerc/complete-keymaps-load-hook
 
 
 # ---------------------------------------------------------------------------
+# Character widths -- fixed, so ble.sh does not probe the terminal at startup
+# ---------------------------------------------------------------------------
+# With the defaults (char_width_mode=auto, char_width_version=auto) every new
+# shell prints 18 test characters -- [▽] [▶] [龼] ... -- one after another on
+# the current line, asks the terminal where the cursor ended up after each,
+# and erases them again. That is the flicker of lines that appear and vanish
+# when a terminal opens (and, if a reply is slow, sometimes stay).
+#
+# These are exactly the values that probe detects here: tmux 3.4 and
+# Alacritty 0.13.2 (Rust unicode-width = Unicode 15.1) both answer west/15.1.
+# A different terminal that renders East Asian ambiguous-width characters
+# double-wide would want `east` -- check with: bleopt char_width_mode=auto
+bleopt char_width_mode=west
+bleopt char_width_version=15.1
+
+
+# ---------------------------------------------------------------------------
 # Highlighting layers -- all three on, all three re-coloured below
 # ---------------------------------------------------------------------------
 bleopt highlight_syntax=1         # commands, keywords, strings, operators
@@ -249,78 +266,87 @@ bleopt highlight_variable=1       # colour a name by its variable type
 # is expressed with hue only, and anything "informational" fades to #565f89.
 # ---------------------------------------------------------------------------
 
-# --- the command word ------------------------------------------------------
-ble-face command_file=fg=#7aa2f7          # external command: git, ls, ...
-ble-face command_builtin=fg=#7dcfff       # shell builtin: cd, echo, export
-ble-face command_builtin_dot=fg=#7dcfff   # . and :
-ble-face command_function=fg=#73daca      # your functions (tree, fin, ta, ...)
-ble-face command_alias=fg=#73daca         # your aliases   (l, la, gs, ...)
-ble-face command_keyword=fg=#bb9af7       # if, for, while, function
-ble-face command_directory=fg=#7aa2f7     # bare path = implicit cd
-ble-face command_jobs=fg=#bb9af7          # %1, %vim
-ble-face command_suffix=fg=#565f89        # suffix-alias hints (were colour blocks)
-ble-face command_suffix_new=fg=#565f89
+# All faces go to ble.sh in ONE `ble-face` call. Each call costs ~1.5 ms of
+# shell startup, so the 60-odd separate `ble-face` lines this used to be added
+# ~110 ms to every new terminal. The array keeps one line + comment per face;
+# bash allows comments inside it, and the `#` in `fg=#7aa2f7` is mid-word, so
+# it is not a comment.
+_blerc_faces=(
+    # --- the command word -----------------------------------------------------
+    command_file=fg=#7aa2f7          # external command: git, ls, ...
+    command_builtin=fg=#7dcfff       # shell builtin: cd, echo, export
+    command_builtin_dot=fg=#7dcfff   # . and :
+    command_function=fg=#73daca      # your functions (tree, fin, ta, ...)
+    command_alias=fg=#73daca         # your aliases   (l, la, gs, ...)
+    command_keyword=fg=#bb9af7       # if, for, while, function
+    command_directory=fg=#7aa2f7     # bare path = implicit cd
+    command_jobs=fg=#bb9af7          # %1, %vim
+    command_suffix=fg=#565f89        # suffix-alias hints (were colour blocks)
+    command_suffix_new=fg=#565f89
 
-# --- syntax ----------------------------------------------------------------
-ble-face syntax_default=none              # plain arguments stay foreground
-ble-face syntax_command=fg=#7aa2f7
-ble-face syntax_quoted=fg=#9ece6a         # "string"
-ble-face syntax_quotation=fg=#9ece6a      # the quote characters themselves
-ble-face syntax_escape=fg=#bb9af7         # \n, \"
-ble-face syntax_expr=fg=#7dcfff           # $(( ... ))
-ble-face syntax_brace=fg=#e0af68          # {a,b}
-ble-face syntax_glob=fg=#e0af68           # * ? [abc]
-ble-face syntax_delimiter=fg=#89ddff      # | ; && ||
-ble-face syntax_comment=fg=#565f89        # # trailing comment
-ble-face syntax_document=fg=#9ece6a       # heredoc body
-ble-face syntax_document_begin=fg=#9ece6a # <<EOF
-ble-face syntax_param_expansion=fg=#e0af68 # ${var:-default}
-ble-face syntax_varname=fg=#e0af68        # $var
-ble-face syntax_tilde=fg=#bb9af7          # ~, ~user
-ble-face syntax_history_expansion=fg=#ff9e64 # !!, !$
-ble-face syntax_error=fg=#f7768e          # unbalanced quote, stray ) ...
-ble-face argument_option=fg=#7dcfff       # --flag, -x
-ble-face argument_error=fg=#f7768e
+    # --- syntax ---------------------------------------------------------------
+    syntax_default=none              # plain arguments stay foreground
+    syntax_command=fg=#7aa2f7
+    syntax_quoted=fg=#9ece6a         # "string"
+    syntax_quotation=fg=#9ece6a      # the quote characters themselves
+    syntax_escape=fg=#bb9af7         # \n, \"
+    syntax_expr=fg=#7dcfff           # $(( ... ))
+    syntax_brace=fg=#e0af68          # {a,b}
+    syntax_glob=fg=#e0af68           # * ? [abc]
+    syntax_delimiter=fg=#89ddff      # | ; && ||
+    syntax_comment=fg=#565f89        # # trailing comment
+    syntax_document=fg=#9ece6a       # heredoc body
+    syntax_document_begin=fg=#9ece6a # <<EOF
+    syntax_param_expansion=fg=#e0af68 # ${var:-default}
+    syntax_varname=fg=#e0af68        # $var
+    syntax_tilde=fg=#bb9af7          # ~, ~user
+    syntax_history_expansion=fg=#ff9e64 # !!, !$
+    syntax_error=fg=#f7768e          # unbalanced quote, stray ) ...
+    argument_option=fg=#7dcfff       # --flag, -x
+    argument_error=fg=#f7768e
 
-# --- words that name something on disk --------------------------------------
-# (ble.sh underlines these by default; the colour carries the meaning already)
-ble-face filename_directory=fg=#7aa2f7
-ble-face filename_directory_sticky=fg=#7aa2f7
-ble-face filename_executable=fg=#9ece6a
-ble-face filename_link=fg=#7dcfff
-ble-face filename_url=fg=#7aa2f7
-ble-face filename_other=none
-ble-face filename_ls_colors=none
-ble-face filename_orphan=fg=#f7768e       # dangling symlink
-ble-face filename_warning=fg=#f7768e
-ble-face filename_setuid=fg=#ff9e64       # all of these were black-on-yellow
-ble-face filename_setgid=fg=#ff9e64       # or white-on-black blocks
-ble-face filename_block=fg=#e0af68
-ble-face filename_character=fg=#e0af68
-ble-face filename_pipe=fg=#e0af68
-ble-face filename_socket=fg=#e0af68
+    # --- words that name something on disk ------------------------------------
+    # (ble.sh underlines these by default; the colour carries the meaning already)
+    filename_directory=fg=#7aa2f7
+    filename_directory_sticky=fg=#7aa2f7
+    filename_executable=fg=#9ece6a
+    filename_link=fg=#7dcfff
+    filename_url=fg=#7aa2f7
+    filename_other=none
+    filename_ls_colors=none
+    filename_orphan=fg=#f7768e       # dangling symlink
+    filename_warning=fg=#f7768e
+    filename_setuid=fg=#ff9e64       # all of these were black-on-yellow
+    filename_setgid=fg=#ff9e64       # or white-on-black blocks
+    filename_block=fg=#e0af68
+    filename_character=fg=#e0af68
+    filename_pipe=fg=#e0af68
+    filename_socket=fg=#e0af68
 
-# --- variable names, coloured by what they are ------------------------------
-# Deliberately almost uniform: a plain $HOME should be ONE colour, not a yellow
-# "$" glued to an orange name. Only the two cases worth a warning stand out.
-ble-face varname_new=fg=#9ece6a           # first assignment in this shell
-ble-face varname_array=fg=#e0af68
-ble-face varname_hash=fg=#e0af68
-ble-face varname_expr=fg=#e0af68
-ble-face varname_number=fg=#e0af68
-ble-face varname_transform=fg=#e0af68
-ble-face varname_export=fg=#e0af68
-ble-face varname_readonly=fg=#ff9e64      # assigning to it will fail
-ble-face varname_empty=fg=#565f89         # set but empty
-ble-face varname_unset=fg=#565f89         # never set -- probably a typo
+    # --- variable names, coloured by what they are ----------------------------
+    # Deliberately almost uniform: a plain $HOME should be ONE colour, not a yellow
+    # "$" glued to an orange name. Only the two cases worth a warning stand out.
+    varname_new=fg=#9ece6a           # first assignment in this shell
+    varname_array=fg=#e0af68
+    varname_hash=fg=#e0af68
+    varname_expr=fg=#e0af68
+    varname_number=fg=#e0af68
+    varname_transform=fg=#e0af68
+    varname_export=fg=#e0af68
+    varname_readonly=fg=#ff9e64      # assigning to it will fail
+    varname_empty=fg=#565f89         # set but empty
+    varname_unset=fg=#565f89         # never set -- probably a typo
 
-# --- selection, search, and ble.sh's own UI ---------------------------------
-ble-face region=bg=#283457                # visual selection
-ble-face region_insert=bg=#283457
-ble-face region_match=bg=#3d59a1              # search hit: tinted, not inverted
-ble-face region_target=fg=#1a1b26,bg=#bb9af7  # the one hit you are on
-ble-face menu_filter_input=fg=#c0caf5,bg=#283457
-ble-face prompt_status_line=fg=#c0caf5,bg=#414868
-ble-face overwrite_mode=fg=#1a1b26,bg=#e0af68
-ble-face cmdinfo_cd_cdpath=fg=#565f89
-ble-face disabled=fg=#565f89
+    # --- selection, search, and ble.sh's own UI -------------------------------
+    region=bg=#283457                # visual selection
+    region_insert=bg=#283457
+    region_match=bg=#3d59a1              # search hit: tinted, not inverted
+    region_target=fg=#1a1b26,bg=#bb9af7  # the one hit you are on
+    menu_filter_input=fg=#c0caf5,bg=#283457
+    prompt_status_line=fg=#c0caf5,bg=#414868
+    overwrite_mode=fg=#1a1b26,bg=#e0af68
+    cmdinfo_cd_cdpath=fg=#565f89
+    disabled=fg=#565f89
+)
+ble-face "${_blerc_faces[@]}"
+unset -v _blerc_faces

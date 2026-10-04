@@ -79,6 +79,13 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
 - fzf keybindings with an fd backend; UP/DOWN prefix history search
 - zoxide `z` (canonical, still being rolled out — see PARITY drift notes)
 - tmux helpers `t`/`ta`/`tk`/`tn` on Linux/macOS only (Windows has no tmux)
+- the startup banner + `keys` cheatsheet (Ubuntu only so far — PLAN step 2).
+  **When you add or change a macro or hotkey, update `keys` (and the banner if
+  it is one of the headline ones)** in `Ubuntu24/configs/.bash_aliases` —
+  otherwise the cheatsheet quietly lies. Spell keys as on the keyboard
+  (`Ctrl+T`, `Alt+C`, `Shift+PgUp`, arrows as `← ↑ → ↓`), never `^T` / `M-c`.
+  Keep the banner ≤ 78 columns. Pad with `__cli_tweaks_pad`, not
+  `printf %-Ns`: bash's printf pads by BYTES, so arrows misalign.
 
 ## Environment / tooling gotchas
 
@@ -116,6 +123,19 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
 - **The fzf `--exclude` list is duplicated** in `Ubuntu24/configs/.bashrc` and
   the Windows profile (`.git .vscode .vscode-shared .cache .config .local`).
   Change both.
+- **ble.sh startup cost — keep it down.** Time to prompt: ~0.14 s without
+  ble.sh, ~0.6 s with it (0.25 s load + 0.17 s `ble-attach`, inherent;
+  measured on the laptop in power-saver mode). Three traps, all fixed:
+  (1) every `ble-face` call costs ~1.5 ms — keep the palette in the
+  `_blerc_faces` array and the single `ble-face "${_blerc_faces[@]}"` call,
+  never add separate `ble-face` lines; (2) `char_width_mode/version=auto` (the
+  default) makes every shell print `[▽] [▶] …` test characters and query the
+  cursor — `.blerc` pins `west` / `15.1`; (3) any reinstall makes ble.sh's
+  files newer than `~/.cache/blesh`, so each `$TERM` rebuilds its caches
+  (`ble/term.sh: updating tput cache …`, ~1.7 s) — `install-blesh.sh` must not
+  reinstall an existing ble.sh; updates go through `ble-update`. To measure,
+  start `bash -i` in a detached tmux pane (it answers ble.sh's terminal
+  queries; `script` does not) and time until the prompt appears.
 - **ble.sh's settings live in `Ubuntu24/configs/.blerc`, not in `.bashrc`**
   (ble.sh sources `~/.blerc` by itself). That file holds the autosuggestion
   options and a full **Tokyo Night** face palette that overrides ble.sh's

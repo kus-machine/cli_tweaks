@@ -35,6 +35,7 @@ Installs useful command-line tools:
 - fzf
 - fd
 - ripgrep
+- zoxide (`z` / `zi` — jump to frequent folders)
 - btop
 
 ```bash
@@ -143,6 +144,25 @@ upstream's prebuilt nightly tarball (no build tools needed). `--configs` is what
 actually wires it into `.bashrc`; installing one without the other is harmless —
 the `.bashrc` block is guarded and simply does nothing if ble.sh is missing.
 
+Re-running `--blesh` (or `--all`) does **not** reinstall a ble.sh it already
+put there. To update ble.sh, run `ble-update` in a shell.
+
+ble.sh makes a new terminal take ~0.6 s to show the prompt instead of ~0.15 s
+(0.25 s to load it, 0.17 s to attach — its own cost). Two one-off things can
+make it slower or noisier:
+
+- **The first terminal after installing or updating ble.sh** rebuilds its
+  caches in `~/.cache/blesh` for that `$TERM` (~1.7 s) and prints
+  `ble/term.sh: updating tput cache for TERM=...`. Alacritty and tmux use
+  different `TERM`s, so each does it once.
+- **Power-saver mode** (`powerprofilesctl get`) slows ble.sh, which is plain
+  bash code, by roughly 2×.
+
+`.blerc` already removes the two avoidable costs: it applies the whole colour
+palette in one `ble-face` call (~110 ms saved) and fixes the character-width
+settings, so ble.sh no longer flashes test characters (`[▽] [▶] …`) at
+startup to measure the terminal.
+
 ---
 
 ### --alacritty
@@ -227,10 +247,39 @@ still has your real originals to fall back on. Delete
 | `tree [depth] [path]` | eza tree; `tree 3 /etc` = 3 levels of /etc; other args go to eza (`tree -a`). `command tree` is the classic binary |
 | `tree1` … `tree9` | shorthand for the depth: `tree3 /etc` = `tree 3 /etc` |
 | `fin <pattern>` | find files from the **current directory**, hidden and git-ignored included (fd; falls back to `find`) |
-| `gs` | `git status` |
+| `gs` / `gd` / `gl` | `git status` / `git diff` / `git log --graph` |
+| `z <part of a path>` / `zi` | zoxide: jump to the best-matching folder you have visited / pick one with fzf |
 | `top` / `htop` | btop |
 | `t`, `tls`, `ta`, `tn` | tmux, list, attach to the first session, new session |
 | `tk` | inside tmux: kill this session; outside: list all sessions and ask before killing the server |
+| `keys` | the full cheatsheet: every command above plus all hotkeys (command line, tmux, terminal) |
+
+### Startup banner
+
+A new terminal greets you with an ASCII cat and the commands above that are
+easiest to forget, with `keys` for the rest:
+
+```
+  ,-.       _,---._ __  / \    cli_tweaks · github.com/kus-machine/cli_tweaks
+ /  )    .-'       `./ /   \
+(  (   ,'            `/    /|  l  la  lss           list · +sizes · by size
+ \  `-"             \'\   / |  tree3 dir            tree, 3 levels (tree1…9)
+  `.              ,  \ \ /  |  fin TEXT             find by name, from here
+   /`.          ,'-`----Y   |  z DIR                jump to a frequent folder
+  (            ;        |   '  gs  gd  gl           git status · diff · log
+  |  ,-.    ,-'  Andrii |  /   t  ta  tn  tk        tmux · attach · new · kill
+  |  | (   |    Pavliuk | /    Ctrl+T Ctrl+R Alt+C  fzf: file · history · cd
+  )  |  \  `.___________|/     ↑  →  Alt+W          history · accept · copy
+  `--'   `--'                  keys                 all commands & hotkeys
+```
+
+- It needs 79 columns. From 40 to 78 columns you get one line
+  (`=^.^= cli_tweaks · type keys for every hotkey`); below 40, nothing.
+- It shows once per terminal: in tmux only in the first pane of a new session
+  (not on splits or new windows), and never in a nested `bash`.
+- Switch it off with `CLI_TWEAKS_BANNER=0` in `~/.bashrc.local`.
+- The cat is by hjw (Hayley Jane Wakenshaw); the credit sits in a comment in
+  `configs/.bash_aliases`, where both the banner and `keys` are defined.
 
 ---
 

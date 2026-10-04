@@ -15,8 +15,10 @@ everywhere.
 - **Inline autosuggestions:** grey completion-as-you-type from history —
   ble.sh (bash), zsh-autosuggestions (zsh), PSReadLine prediction (pwsh)
 - **Macros:** `l`/`la`/`lss` (eza), `tree [depth]` / `tree3` (eza tree), `fin` (find from the current
-  dir), `gs` (git status),
+  dir), `gs`/`gd`/`gl` (git), `z` (zoxide),
   `top`/`htop` → btop, tmux helpers `t`/`ta`/`tk`/`tn` (Linux/macOS)
+- **Startup banner:** a new terminal shows an ASCII cat with the key macros;
+  `keys` prints the full cheatsheet of commands and hotkeys (Ubuntu for now)
 
 See **[docs/PARITY.md](docs/PARITY.md)** for exactly what's wired on each platform.
 Planned work (macOS parity, SSH config, Raspberry Pi) lives in

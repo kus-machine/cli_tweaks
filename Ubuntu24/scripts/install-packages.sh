@@ -25,6 +25,7 @@ apt_install_tracked \
     fzf \
     fd-find \
     ripgrep \
+    zoxide \
     btop
 
 echo

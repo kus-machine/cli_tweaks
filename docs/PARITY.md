@@ -16,15 +16,16 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Fuzzy search          | **fzf** + fd (Ctrl+T/R, Alt+C)       | ✅       | 🟡 no fd cfg| ✅ (PSFzf; Alt+C 🟡 untested) |
 | Inline autosuggestion | grey text as you type                | ✅ ble.sh| ✅ zsh-autosuggestions | ✅ PSReadLine |
 | Input-line colours    | Tokyo Night faces (`Ubuntu24/configs/.blerc`) | ✅ | 📝          | 📝              |
-| Smart cd              | **zoxide** (`z`)                     | 🟡 *not wired* | 🟡 *not wired* | ✅          |
+| Smart cd              | **zoxide** (`z`, `zi`)               | ✅       | 🟡 *not wired* | ✅          |
 | History (big, dedup, prefix ↑↓) | shell history opts        | ✅       | 🟡 blind, untested | ✅ (PSReadLine) |
-| git shortcuts         | `gs` `gd` `gl`                       | 🟡 gs only | ✅ gs/gd/gl/gl1| 🟡 gs/gd/gl (`gl` fix untested) |
+| git shortcuts         | `gs` `gd` `gl`                       | ✅       | ✅ gs/gd/gl/gl1| 🟡 gs/gd/gl (`gl` fix untested) |
 | System monitor        | **btop** (`top`/`htop`)             | ✅       | 📝          | ✅ (btop4win)   |
 | Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅       | ✅          | 🚫 (no tmux)    |
 | Copy to clipboard     | tmux copy-pipe + `Alt+W` on the line | ✅ xclip | 🟡 pbcopy, untested | 🟡 terminal only |
 | Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | 🟡 blind, untested | ✅       |
 | Word-delete keys      | Ctrl/Alt+Backspace ⌫word, Ctrl+Del word⌦ | ✅ ble.sh + readline fallback | 🟡 blind, untested | ✅ PSReadLine, pinned |
 | Uninstall / revert    | manifest-driven uninstaller          | ✅       | 📝          | ✅              |
+| Startup banner + `keys` | cat + key macros on a new terminal; `keys` = full cheatsheet | ✅ | 📝 | 📝 |
 
 Windows was installed and verified on 2026-07-12 (Windows 11, pwsh 7.6.3): all
 tools install via winget, the profile loads clean, and every macro/tool resolves.
@@ -38,8 +39,12 @@ Inline autosuggestions landed on Ubuntu on 2026-07-28 via **ble.sh**
 (`./install.sh --blesh`), which is the only way to get them in bash — readline
 cannot draw ahead of the cursor. Verified live: suggestion in grey 242 (same
 shade as the Windows profile's `InlinePrediction`), `Tab` completion, fzf
-`Ctrl+T`/`Ctrl+R`/`Alt+C` and `UP` prefix search all still work, and shell
-startup is unchanged (0.27 s with and without). ble.sh's syntax highlighting is
+`Ctrl+T`/`Ctrl+R`/`Alt+C` and `UP` prefix search all still work. (The original
+note here said startup was "unchanged, 0.27 s with and without" — that was
+wrong. Measured 2026-10-05 on the laptop, time to first prompt: 0.14 s without
+ble.sh, ~0.6 s with it — about 0.25 s to load ble.sh plus 0.17 s for
+`ble-attach`, both inherent — and ~1.7 s once after every (re)install while
+its caches rebuild; see the ble.sh startup notes in CLAUDE.md.) ble.sh's syntax highlighting is
 kept but re-themed to Tokyo Night in `Ubuntu24/configs/.blerc`; its stock
 palette was rejected. macOS gets the same suggestion feel from
 `zsh-autosuggestions`, which `macos/.zshrc` already sources; its suggestion
@@ -79,14 +84,12 @@ several things that looked fine but were not:
 
 ## Known drift / cleanup to reconcile
 
-- **zoxide is documented but never wired.** The macOS README tells you to
-  `brew install zoxide`, but neither `.zshrc` nor Ubuntu's `.bashrc` runs
-  `zoxide init`. Decision: **adopt zoxide as canonical** and add `zoxide init`
+- **zoxide is wired on Ubuntu and Windows only.** The macOS README tells you to
+  `brew install zoxide`, but `.zshrc` does not run `zoxide init` yet.
+  Decision: **adopt zoxide as canonical** and add `zoxide init`
   to Ubuntu, macOS, Windows, and (optionally) remote.
-- **git aliases differ**: Ubuntu — the canonical platform — has only `gs`,
-  while Windows has `gs/gd/gl` and macOS `gs/gd/gl/gl1`. Canonical set going
-  forward: `gs`, `gd`, `gl` (add `gd`/`gl` to Ubuntu; drop `gl1` or fold it
-  into `gl`).
+- **git aliases**: `gs/gd/gl` everywhere now; macOS still has an extra `gl1`
+  (drop it or fold it into `gl`).
 - **`fin`, btop on macOS** are simply not wired yet (part of PLAN step 3), not
   "not applicable".
 - **tmux.conf** is duplicated (`Ubuntu24/` and `macos/`) and 99% identical —

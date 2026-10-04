@@ -188,6 +188,15 @@ if command -v starship >/dev/null 2>&1; then
     eval "$(starship init bash)"
 fi
 
+# zoxide: `z <part of a path>` jumps to the best-matching folder you have
+# visited, `zi` picks one with fzf. Its init hooks PROMPT_COMMAND to learn the
+# folders you cd into, so like everything else here it must come before
+# ble-attach (zoxide's docs say "at the end of .bashrc" -- this is as late as
+# that may go). Guarded: the package comes with ./install.sh --packages.
+if command -v zoxide >/dev/null 2>&1; then
+    eval "$(zoxide init bash)"
+fi
+
 
 # Use ls colors for completion
 export LS_COLORS="$LS_COLORS"
@@ -231,6 +240,27 @@ fi
 # can override any of it) but still before ble.sh attaches.
 if [ -f "$HOME/.bashrc.local" ]; then
     . "$HOME/.bashrc.local"
+fi
+
+
+# ---------------------------------------------------------------------------
+# Startup banner  (the cat + key macros; `keys` prints the full cheatsheet)
+# ---------------------------------------------------------------------------
+# Once per new TERMINAL, not once per shell:
+#   * inside tmux, only in the very first pane of a new session -- not on
+#     Ctrl+B | / Ctrl+B - splits or Ctrl+B c windows;
+#   * outside tmux, only in a top-level shell (SHLVL 1), so typing `bash`
+#     inside bash stays quiet;
+#   * never when output is not a terminal.
+# After ~/.bashrc.local, so `CLI_TWEAKS_BANNER=0` there switches it off.
+# Defined in ~/.bash_aliases.
+if [[ ${CLI_TWEAKS_BANNER-1} != 0 && -t 1 ]] && declare -F cli_tweaks_banner >/dev/null; then
+    if [[ -n ${TMUX-} ]]; then
+        [[ $(tmux display -p -t "${TMUX_PANE-}" '#{session_windows}#{window_panes}' 2>/dev/null) == 11 ]] &&
+            cli_tweaks_banner
+    elif [[ ${SHLVL:-1} -le 1 ]]; then
+        cli_tweaks_banner
+    fi
 fi
 
 

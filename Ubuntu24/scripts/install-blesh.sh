@@ -35,6 +35,15 @@ if [[ -e "$BLESH_DIR" ]] &&
         "$MANIFEST" >/dev/null 2>&1; then
     ok "ble.sh already present at $BLESH_DIR - leaving it alone"
     record_dir "$BLESH_DIR" true
+elif [[ -s "$BLESH_DIR/ble.sh" ]]; then
+    # Ours and intact: do NOT reinstall on every ./install.sh run. A reinstall
+    # makes every file in $BLESH_DIR newer than ble.sh's caches in
+    # ~/.cache/blesh, so the next terminal of each $TERM rebuilds them all --
+    # ~1 s slower to open, plus a "ble/term.sh: updating tput cache for
+    # TERM=..." line. Updating is ble.sh's own job: run `ble-update` in a shell
+    # (it fetches the latest nightly and says "Already up to date" otherwise).
+    ok "ble.sh already installed at $BLESH_DIR - not reinstalling"
+    echo "   to update it, run inside a shell:  ble-update"
 else
     info "downloading ble.sh (nightly)"
     curl -fsSL --retry 2 -o "$TMP_DIR/ble-nightly.tar.xz" "$BLESH_URL"

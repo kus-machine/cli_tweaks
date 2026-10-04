@@ -4,7 +4,7 @@
 Windows 11, and remote SSH targets (Raspberry Pi) — plus a clean, reworked set
 of installers and a good SSH config.
 
-_Last updated: 2026-10-05._
+_Last updated: 2026-10-05 (startup banner)._
 
 ## Locked decisions
 
@@ -181,6 +181,29 @@ where the bash side was exercised for real. The Windows and macOS edits are
   `history-search-backward` only matched the first word); plugins are looked
   up in both Homebrew prefixes and syntax-highlighting is sourced last.
 
+### Startup banner + `keys` (done on Ubuntu, 2026-10-05)
+- New terminal → ASCII cat (by hjw; the owner's name in the box, credit in a
+  comment) beside the most-forgettable macros; `keys` prints the full
+  cheatsheet (commands, command-line keys, tmux, terminal) through
+  `less -FRX`. Keys are spelled as on the keyboard (`Ctrl+T`, `Alt+C`, `↑`),
+  no `^T` / `M-c` shorthand.
+- Shown once per terminal: first pane of a new tmux session only, top-level
+  shells only (`SHLVL` 1); 79+ columns for the cat, one line from 40, nothing
+  below; `CLI_TWEAKS_BANNER=0` in `~/.bashrc.local` turns it off.
+- Canon gaps closed first so the banner does not advertise missing things:
+  `gd`/`gl` aliases and **zoxide** (`--packages` + `zoxide init bash`) on Ubuntu.
+
+### ble.sh startup (done, 2026-10-05)
+- Symptom: new terminals opened slowly, sometimes with lines flashing by or
+  left behind (`ble/term.sh: updating tput cache for TERM=xterm-256color...`).
+- Causes found by profiling each `.bashrc` block in a tmux pane: 64 separate
+  `ble-face` calls (~110 ms) → one array-based call; the default
+  char-width auto-probe printed `[▽] [▶] …` and queried the cursor on every
+  start → pinned `west` / `15.1` (what the probe detects for tmux 3.4 and
+  Alacritty 0.13.2); `install-blesh.sh` reinstalled ble.sh on every run,
+  invalidating all its caches → now skips an intact ble.sh (update with
+  `ble-update`). ~0.78 s → ~0.6 s to prompt; the rest is ble.sh itself.
+
 _SSH config and the Raspberry Pi / remote profile are intentionally **plan-only**
 for now (below) — nothing implemented yet._
 
@@ -195,7 +218,8 @@ for now (below) — nothing implemented yet._
    worth opening Alacritty once to confirm the live starship prompt, the
    fzf `Ctrl+T`/`Ctrl+R`/`Alt+C` keybindings, and that opacity 0.9 renders (if it
    looks fully opaque, run the 0.6 diagnostic then restore 0.9).
-2. **Add zoxide to Ubuntu** `.bashrc` (`eval "$(zoxide init bash)"`) + package.
+2. **Port the startup banner + `keys` to zsh and pwsh** once the Ubuntu look is
+   approved (Windows: no tmux rows; `btop4win`). Draft-only on both.
 3. **macOS rewrite to parity** (needs a Mac to test):
    - Add starship + `shared/starship.toml`.
    - eza `l`/`la`/`lss`, `fin`; fzf + fd backend; zoxide; btop.

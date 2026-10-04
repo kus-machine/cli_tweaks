@@ -1,4 +1,6 @@
 alias gs='git status'
+alias gd='git diff'
+alias gl='git log --graph'
 
 # some more ls aliases
 # alias ll='ls -alF'
@@ -125,3 +127,175 @@ fi
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+
+# ===========================================================================
+# Startup banner + `keys` cheatsheet
+# ===========================================================================
+# A reminder of what this setup can do, because the macros are easy to forget.
+#   cli_tweaks_banner   the cat + the most-used commands; ~/.bashrc calls it
+#                       once per new terminal (see the guard there)
+#   keys                every command and hotkey, one screen-ish, via less
+# Turn the banner off with  CLI_TWEAKS_BANNER=0  in ~/.bashrc.local.
+#
+# Keys are written out the way they are printed on the keyboard (Ctrl+T,
+# Alt+C, Shift+PgUp), arrows as ← ↑ → ↓ -- no ^T / M-c shorthand.
+#
+# Colours are the Tokyo Night values from shared/alacritty.toml, sent as
+# truecolor when the terminal says it supports it ($COLORTERM) and as the
+# nearest 256-colour index otherwise.
+
+# __cli_tweaks_fg <hex rrggbb> <256-colour fallback>  -- prints the escape
+__cli_tweaks_fg() {
+    if [[ ${COLORTERM-} == truecolor || ${COLORTERM-} == 24bit ]]; then
+        printf '\e[38;2;%d;%d;%dm' "0x${1:0:2}" "0x${1:2:2}" "0x${1:4:2}"
+    else
+        printf '\e[38;5;%sm' "$2"
+    fi
+}
+
+# __cli_tweaks_pad <text> <width>  -- spaces that pad <text> to <width>.
+# printf's %-20s counts BYTES, so "↑ →" (3 bytes per arrow) would come out
+# short; ${#text} counts characters in a UTF-8 locale.
+__cli_tweaks_pad() {
+    local n=$(( $2 - ${#1} ))
+    (( n > 0 )) && printf '%*s' "$n" ''
+}
+
+cli_tweaks_banner() {
+    local cols
+    cols=$(tput cols 2>/dev/null) || cols=80
+
+    local cat_c title_c cmd_c desc_c name_c reset=$'\e[0m'
+    cat_c=$(__cli_tweaks_fg bb9af7 141)     # magenta
+    title_c=$(__cli_tweaks_fg 7aa2f7 111)   # blue
+    cmd_c=$(__cli_tweaks_fg 73daca 79)      # teal = your functions in ble.sh
+    desc_c=$(__cli_tweaks_fg a9b1d6 146)    # soft foreground
+    name_c=$(__cli_tweaks_fg e0af68 179)    # yellow
+
+    # Too narrow for the cat (it needs 79 columns): one line, or nothing.
+    if (( cols < 40 )); then
+        return 0
+    elif (( cols < 79 )); then
+        printf '%s=^.^=%s %scli_tweaks%s %s· type%s %skeys%s %sfor every hotkey%s\n' \
+            "$cat_c" "$reset" "$title_c" "$reset" "$desc_c" "$reset" \
+            "$cmd_c" "$reset" "$desc_c" "$reset"
+        return 0
+    fi
+
+    # ASCII cat by hjw (Hayley Jane Wakenshaw); her "hjw" signature in the
+    # box was replaced by the owner's name, credited here instead.
+    local -a cat
+    mapfile -t cat <<'CAT'
+  ,-.       _,---._ __  / \
+ /  )    .-'       `./ /   \
+(  (   ,'            `/    /|
+ \  `-"             \'\   / |
+  `.              ,  \ \ /  |
+   /`.          ,'-`----Y   |
+  (            ;        |   '
+  |  ,-.    ,-'  Andrii |  /
+  |  | (   |    Pavliuk | /
+  )  |  \  `.___________|/
+  `--'   `--'
+CAT
+
+    # Right-hand column: rows 3..11 are "command<TAB>what it does".
+    local -a rows=(
+        ''
+        ''
+        $'l  la  lss\tlist · +sizes · by size'
+        $'tree3 dir\ttree, 3 levels (tree1…9)'
+        $'fin TEXT\tfind by name, from here'
+        $'z DIR\tjump to a frequent folder'
+        $'gs  gd  gl\tgit status · diff · log'
+        $'t  ta  tn  tk\ttmux · attach · new · kill'
+        $'Ctrl+T Ctrl+R Alt+C\tfzf: file · history · cd'
+        $'↑  →  Alt+W\thistory · accept · copy'
+        $'keys\tall commands & hotkeys'
+    )
+
+    local i line cmd desc
+    for i in "${!cat[@]}"; do
+        line=${cat[i]}
+        # Colour the name inside the box separately from the cat outline.
+        line=${line//Andrii/${name_c}Andrii${cat_c}}
+        line=${line//Pavliuk/${name_c}Pavliuk${cat_c}}
+        printf '%s%s%s' "$cat_c" "$line" "$reset"
+        if (( i == 0 )); then
+            __cli_tweaks_pad "${cat[i]}" 31
+            printf '%scli_tweaks · github.com/kus-machine/cli_tweaks%s' "$title_c" "$reset"
+        elif [[ ${rows[i]-} ]]; then
+            __cli_tweaks_pad "${cat[i]}" 31
+            cmd=${rows[i]%%$'\t'*} desc=${rows[i]#*$'\t'}
+            printf '%s%s%s' "$cmd_c" "$cmd" "$reset"
+            __cli_tweaks_pad "$cmd" 21
+            printf '%s%s%s' "$desc_c" "$desc" "$reset"
+        fi
+        printf '\n'
+    done
+}
+
+# keys -- the full cheatsheet. Taller than a small window, so it goes through
+# `less -FRX`: quits by itself when it fits on one screen (-F), keeps colours
+# (-R) and leaves the text on screen afterwards (-X).
+keys() {
+    local head_c key_c desc_c reset=$'\e[0m'
+    head_c=$(__cli_tweaks_fg 7aa2f7 111)
+    key_c=$(__cli_tweaks_fg 73daca 79)
+    desc_c=$(__cli_tweaks_fg a9b1d6 146)
+
+    # "# Heading", blank lines, or "keys<TAB>description".
+    local line k d
+    while IFS= read -r line; do
+        if [[ $line == '# '* ]]; then
+            printf '%s%s%s\n' "$head_c" "${line#'# '}" "$reset"
+        elif [[ $line == *$'\t'* ]]; then
+            k=${line%%$'\t'*} d=${line#*$'\t'}
+            printf '  %s%s%s' "$key_c" "$k" "$reset"
+            __cli_tweaks_pad "$k" 26
+            printf '%s%s%s\n' "$desc_c" "$d" "$reset"
+        else
+            printf '%s\n' "$line"
+        fi
+    done <<'KEYS' | less -FRX
+# cli_tweaks · github.com/kus-machine/cli_tweaks
+
+# COMMANDS
+l  la  lss	list files · + folder sizes · biggest last
+tree [N] [dir]	tree, N levels deep · tree1 … tree9 = tree N
+fin TEXT	find files by name, from the current folder
+z DIR  ·  zi	jump to a folder you use often · pick one with fzf
+gs  gd  gl	git status · git diff · git log graph
+top  htop	btop system monitor
+t  tls  ta	tmux · list sessions · attach to the first one
+tn  tk	new tmux session · kill session (asks outside tmux)
+c  ·  alert	clear · desktop popup when done, e.g.  make; alert
+
+# TYPING A COMMAND
+→  End  Ctrl+F	accept the grey suggestion
+Ctrl+→  Alt+F	accept one word of it
+↑  ↓	history starting with what you typed
+Tab Tab	menu of choices · type to narrow · Enter takes one
+Esc  Ctrl+G	close the menu / search / suggestion
+Ctrl+T  Ctrl+R  Alt+C	fzf: file · history line · folder to cd into
+** then Tab	fzf file picker inside any command, e.g.  vim **
+Shift+← →  then Alt+W	select text · copy it (no selection = whole line)
+Ctrl+Backspace	delete the word on the left (Alt+Backspace too)
+Ctrl+Delete	delete the word on the right
+Ctrl+Y	paste what you deleted last
+Ctrl+← →	jump one word
+
+# TMUX  (press Ctrl+B, release, then the key)
+Ctrl+B |   Ctrl+B -	split the pane right · below
+Alt+← ↑ → ↓	move between panes
+Ctrl+B c   Ctrl+B n	new window · next window
+Shift+PgUp, mouse wheel	scroll back (q or Esc to stop)
+drag, 2×click, 3×click	copy the selection · word · line
+Ctrl+B d   Ctrl+B r	detach (session keeps running) · reload config
+
+# TERMINAL
+select with the mouse	copied already · Ctrl+Shift+V pastes
+middle click	paste the current selection
+KEYS
+}
