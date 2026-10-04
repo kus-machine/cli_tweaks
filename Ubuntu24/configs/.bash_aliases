@@ -16,6 +16,13 @@ alias la='eza -AlF --icons=always --group-directories-first  --total-size'
 # alias l='eza -AlF --icons=always --group-directories-first --total-size --color-scale=all'
 alias lss="eza -AlF --icons=always --group-directories-first --total-size --sort=size --reverse"
 
+# bat = cat with syntax highlighting and line numbers. Ubuntu's package names
+# the command `batcat` (an older, unrelated `bat` package took the name), so
+# give it its real name back -- unless a real `bat` is installed already.
+if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then
+    alias bat='batcat'
+fi
+
 # ---------------------------------------------------------------------------
 # tree  --  eza's tree view, with an optional depth in front
 # ---------------------------------------------------------------------------
@@ -288,6 +295,7 @@ keys() {
 l  la  lss	list files · + folder sizes · biggest last
 tree [N] [dir]	tree, N levels deep · tree1 … tree9 = tree N
 fin TEXT	find files by name, from the current folder
+bat FILE	show a file with syntax colours and line numbers
 z PART  ·  zi PART	jump to a visited folder by part of its name
 	learns as you go: cd into it once, then  z cli
 	works anywhere · zi = pick from a list · z - = back
@@ -307,6 +315,7 @@ Ctrl+→  Alt+F	accept one word of it
 Tab Tab	menu of choices · type to narrow · Enter takes one
 Esc  Ctrl+G	close the menu / search / suggestion
 Ctrl+T  Ctrl+R  Alt+C	fzf: file · history line · folder to cd into
+	with a preview on the side · Ctrl+/ hides it
 ** then Tab	fzf file picker inside any command, e.g.  vim **
 Shift+← →  then Alt+W	select text · copy it (no selection = whole line)
 Ctrl+Backspace	delete the word on the left (Alt+Backspace too)

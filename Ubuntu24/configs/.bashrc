@@ -153,6 +153,33 @@ if command -v fdfind >/dev/null 2>&1; then
     export FZF_ALT_C_COMMAND="fdfind --type d --hidden$FDFIND_EXCLUDES"
 fi
 
+# fzf previews, shown on the side of each picker:
+#   Ctrl+T  the file with syntax colours + line numbers (bat), or a folder's tree
+#   Alt+C   the tree of the folder under the cursor (eza, 2 levels)
+#   Ctrl+R  the whole command, wrapped -- long ones are cut off in the list
+#   Ctrl+/  inside any of them hides / shows the preview
+# bat's "ansi" theme draws with the terminal's own 16 colours, i.e. Tokyo Night
+# from alacritty.toml; `export BAT_THEME=TwoDark` (Nord, Dracula, ...) in
+# ~/.bashrc.local picks another one for previews and `bat` alike. Without bat
+# or eza the previews fall back to head / ls.
+__fzf_bat=$(command -v batcat || command -v bat)     # Ubuntu calls it batcat
+if [[ $__fzf_bat ]]; then
+    export BAT_THEME=${BAT_THEME:-ansi}
+    __fzf_file="$__fzf_bat --color=always --style=numbers --line-range=:300 {}"
+else
+    __fzf_file='head -300 {}'
+fi
+if command -v eza >/dev/null 2>&1; then
+    __fzf_dir='eza --tree --level=2 --icons=always --color=always {} | head -200'
+else
+    __fzf_dir='ls -la {}'
+fi
+export FZF_CTRL_T_OPTS="--preview '[[ -d {} ]] && $__fzf_dir || $__fzf_file' --preview-window 'right,60%,border-left' --bind 'ctrl-/:toggle-preview'"
+export FZF_ALT_C_OPTS="--preview '$__fzf_dir' --preview-window 'right,50%,border-left' --bind 'ctrl-/:toggle-preview'"
+# {2..}: the history line without its leading number
+export FZF_CTRL_R_OPTS="--preview 'echo {2..}' --preview-window 'down,4,wrap,border-top' --bind 'ctrl-/:toggle-preview'"
+unset __fzf_bat __fzf_file __fzf_dir
+
 if [[ ${BLE_VERSION-} ]]; then
     # ble.sh ships its own fzf integration and it must be used instead of the
     # stock scripts: those bind Ctrl+R/Ctrl+T through readline, which ble.sh no

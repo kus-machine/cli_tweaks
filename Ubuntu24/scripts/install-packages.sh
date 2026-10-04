@@ -22,6 +22,7 @@ apt_install_tracked \
     tmux \
     eza \
     tree \
+    bat \
     fzf \
     fd-find \
     ripgrep \

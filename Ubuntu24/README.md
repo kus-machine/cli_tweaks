@@ -32,6 +32,7 @@ Installs useful command-line tools:
 - tmux
 - eza
 - tree
+- bat (`cat` with syntax colours; also draws the fzf file preview)
 - fzf
 - fd
 - ripgrep
@@ -317,7 +318,7 @@ bash-completion before `~/.bashrc` runs. The long comment above that block in
 | *(in the menu)* `Tab` / `Shift+Tab` / arrows | move through candidates |
 | *(in the menu)* `Enter` | take the highlighted candidate |
 | *(in the menu)* `Esc` / `Ctrl+C` / `Ctrl+G` | leave the menu, line back the way you typed it |
-| `Ctrl+T` / `Ctrl+R` / `Alt+C` | fzf: files / history / cd |
+| `Ctrl+T` / `Ctrl+R` / `Alt+C` | fzf: files / history / cd — each with a preview on the side (file with syntax colours via bat, folder tree via eza, the full command); `Ctrl+/` hides / shows it |
 
 **`Esc` is the universal way out**: it drops the grey suggestion, leaves the Tab
 menu, and abandons a history or incremental search — everywhere ble.sh offers
