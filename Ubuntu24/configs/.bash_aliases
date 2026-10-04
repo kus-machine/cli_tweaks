@@ -245,7 +245,8 @@ keys() {
     key_c=$(__cli_tweaks_fg 73daca 79)
     desc_c=$(__cli_tweaks_fg a9b1d6 146)
 
-    # "# Heading", blank lines, or "keys<TAB>description".
+    # "# Heading", blank lines, or "keys<TAB>description" -- an empty key
+    # ("<TAB>more text") continues the description on the next line.
     local line k d
     while IFS= read -r line; do
         if [[ $line == '# '* ]]; then
@@ -265,7 +266,9 @@ keys() {
 l  la  lss	list files · + folder sizes · biggest last
 tree [N] [dir]	tree, N levels deep · tree1 … tree9 = tree N
 fin TEXT	find files by name, from the current folder
-z DIR  ·  zi	jump to a folder you use often · pick one with fzf
+z PART  ·  zi PART	jump to a visited folder by part of its name
+	learns as you go: cd into it once, then  z cli
+	works anywhere · zi = pick from a list · z - = back
 gs  gd  gl	git status · git diff · git log graph
 top  htop	btop system monitor
 t  tls  ta	tmux · list sessions · attach to the first one
