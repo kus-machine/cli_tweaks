@@ -124,9 +124,31 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
-# Add an "alert" alias for long running commands.  Use like so:
-#   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+# alert -- desktop notification when a long command finishes:
+#   make; alert        sleep 5; alert
+# Title "done" or "failed (exit N)", the command as the text, and a terminal
+# or error icon. Forgot it on a running command? Ctrl+Z, then  fg; alert
+#
+# This was Ubuntu's stock `alias alert='notify-send --urgency=low ...'`. GNOME
+# Shell shows LOW-urgency notifications only in the list under the clock --
+# no pop-up banner -- so it looked like nothing happened. Rewritten as a
+# function with normal urgency. `$?` must be read on its first line, before
+# anything else overwrites it.
+unalias alert 2>/dev/null
+alert() {
+    local status=$? cmd
+    cmd=$(history 1 | sed -e 's/^ *[0-9]\+ *//; s/[;&|] *alert *$//')
+    if ! command -v notify-send >/dev/null 2>&1; then
+        echo "alert: notify-send not found (apt install libnotify-bin)" >&2
+        return "$status"
+    fi
+    if (( status == 0 )); then
+        notify-send --urgency=normal -i terminal "done" "$cmd"
+    else
+        notify-send --urgency=normal -i error "failed (exit $status)" "$cmd"
+    fi
+    return "$status"
+}
 
 
 # ===========================================================================
@@ -270,10 +292,13 @@ z PART  ·  zi PART	jump to a visited folder by part of its name
 	learns as you go: cd into it once, then  z cli
 	works anywhere · zi = pick from a list · z - = back
 gs  gd  gl	git status · git diff · git log graph
-top  htop	btop system monitor
 t  tls  ta	tmux · list sessions · attach to the first one
 tn  tk	new tmux session · kill session (asks outside tmux)
-c  ·  alert	clear · desktop popup when done, e.g.  make; alert
+top  htop	btop system monitor
+c	clear the screen
+CMD; alert	desktop popup when CMD finishes (done / failed)
+	try:  sleep 5; alert   and switch windows
+	forgot it? Ctrl+Z, then  fg; alert
 
 # TYPING A COMMAND
 →  End  Ctrl+F	accept the grey suggestion

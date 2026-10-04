@@ -250,6 +250,7 @@ still has your real originals to fall back on. Delete
 | `gs` / `gd` / `gl` | `git status` / `git diff` / `git log --graph` |
 | `z <part of a path>` / `zi` | zoxide: jump to the best-matching folder you have visited / pick one with fzf |
 | `top` / `htop` | btop |
+| `CMD; alert` | desktop notification when CMD finishes: "done" or "failed (exit N)" plus the command (needs a desktop session). Try `sleep 5; alert` and switch to another window. Ubuntu's stock alias used `--urgency=low`, which GNOME files under the clock without a pop-up, so it is a function with normal urgency here |
 | `t`, `tls`, `ta`, `tn` | tmux, list, attach to the first session, new session |
 | `tk` | inside tmux: kill this session; outside: list all sessions and ask before killing the server |
 | `keys` | the full cheatsheet: every command above plus all hotkeys (command line, tmux, terminal) |
