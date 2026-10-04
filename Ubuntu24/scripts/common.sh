@@ -71,7 +71,31 @@ manifest_add() {
     mv "$tmp" "$MANIFEST"
 }
 
+# manifest_has <key> <id>  -- true if an entry with that .id is already recorded.
+manifest_has() {
+    [[ -f "$MANIFEST" ]] &&
+        jq -e --arg key "$1" --arg id "$2" \
+            '(.[$key] // [])[] | select(.id == $id)' "$MANIFEST" >/dev/null 2>&1
+}
+
 # --- files -----------------------------------------------------------------
+
+# oldest_backup_of <path>
+#
+# Prints the oldest backup an EARLIER installer left beside <path>
+# (<path>.bak or <path>.bak.<timestamp>), or nothing. "Oldest" is by mtime,
+# which `cp -a`/`mv` carry over from the file that was backed up.
+oldest_backup_of() {
+    local path="$1" b
+    local baks=()
+    # -e filter rather than nullglob: "$path".bak is a plain word, not a glob,
+    # and an unmatched "$path".bak.* stays literal - neither may get through.
+    for b in "$path".bak "$path".bak.*; do
+        [[ -e "$b" ]] && baks+=("$b")
+    done
+    [[ ${#baks[@]} -gt 0 ]] || return 0
+    ls -1tr -- "${baks[@]}" 2>/dev/null | head -n 1
+}
 
 # deploy_file <src> <dst>
 #
@@ -80,7 +104,7 @@ manifest_add() {
 # copy already holds your original.
 deploy_file() {
     local src="$1" dst="$2"
-    local rel pristine
+    local rel pristine legacy
 
     [[ -f "$src" ]] || die "source config missing: $src"
     manifest_init
@@ -98,10 +122,21 @@ deploy_file() {
         pristine="$(jq -r --arg id "$dst" \
             '.files[] | select(.id == $id) | (.pristine // "")' "$MANIFEST")"
     elif [[ -e "$dst" ]]; then
-        cp -a "$dst" "$pristine"
+        # Not in the manifest, but a pre-manifest installer may have run here
+        # already: then $dst is an OLD cli_tweaks deploy, and your real
+        # original is the oldest .bak it left behind. Prefer that one.
+        legacy="$(oldest_backup_of "$dst")"
+        if [[ -n "$legacy" ]]; then
+            cp -a "$legacy" "$pristine"
+            warn "$dst has an older installer's backup beside it -"
+            warn "  treating $legacy as your original (the current file is"
+            warn "  most likely an earlier cli_tweaks deploy; it is kept as .bak.<now>)"
+        else
+            cp -a "$dst" "$pristine"
+        fi
         # Also leave the familiar timestamped backup beside the file, once.
         cp -a "$dst" "${dst}.bak.$(date +%Y%m%d_%H%M%S)"
-        info "captured original $dst -> $pristine"
+        info "captured original ${legacy:-$dst} -> $pristine"
     else
         # Nothing was there: record that, so uninstall removes our file rather
         # than restoring a file that never existed.
@@ -125,6 +160,12 @@ pkg_installed() {
 #
 # Records whether each package was ALREADY present, so the uninstaller can
 # remove only what we actually added.
+#
+# "Present now" must not overwrite an earlier record: on a re-run, a package WE
+# installed last time is installed now too, and recording it as preexisting
+# would mean uninstall --full never removes it. So an installed package keeps
+# whatever the manifest already says; only a package we are about to install
+# right now is (re)recorded as ours.
 apt_install_tracked() {
     local pkg pre
     local to_install=()
@@ -132,6 +173,7 @@ apt_install_tracked() {
     manifest_init
     for pkg in "$@"; do
         if pkg_installed "$pkg"; then
+            manifest_has packages "$pkg" && continue
             pre=true
         else
             pre=false
@@ -152,12 +194,25 @@ apt_install_tracked() {
 
 # --- fonts / standalone binaries / dirs ------------------------------------
 
+# record_font <path> <preexisting:true|false>
+#
+# A font file that was already there before our first install is flagged
+# preexisting and uninstall --full leaves it alone, even though the install
+# refreshes its contents. The first record wins, like everywhere else.
 record_font() {
-    manifest_add fonts "$(jq -n --arg id "$1" '{id: $id}')"
+    manifest_has fonts "$1" && return 0
+    manifest_add fonts "$(jq -n --arg id "$1" --argjson pre "$2" \
+        '{id: $id, preexisting: $pre}')"
 }
 
 # record_bin <path> <preexisting:true|false>
+#
+# Same rule as apt_install_tracked: "it is there now" (true) never overwrites
+# an existing record -- that binary may well be the one we installed last run.
 record_bin() {
+    if [[ "$2" == true ]] && manifest_has bins "$1"; then
+        return 0
+    fi
     manifest_add bins "$(jq -n --arg id "$1" --argjson pre "$2" \
         '{id: $id, preexisting: $pre}')"
 }

@@ -134,24 +134,34 @@ if ! shopt -oq posix; then
 fi
 
 
-# fzf backend configuration (ignoring .git, .vscode, and .cache)
-EXCLUDES=(.git .vscode .vscode-shared .cache .config .local)
-FDFIND_EXCLUDES=""
-for dir in "${EXCLUDES[@]}"; do
-    FDFIND_EXCLUDES+=" --exclude $dir"
-done
+# fzf backend configuration: skip VCS/editor/cache dirs, and also ~/.config and
+# ~/.local so Ctrl+T from $HOME is not drowned in app state. The same list is
+# used by the Windows profile -- keep the two in sync.
+# Only when fd is installed (apt names it fdfind): pointing fzf at a missing
+# command would leave Ctrl+T / Alt+C with an empty list instead of fzf's own
+# built-in file walker.
+if command -v fdfind >/dev/null 2>&1; then
+    EXCLUDES=(.git .vscode .vscode-shared .cache .config .local)
+    FDFIND_EXCLUDES=""
+    for dir in "${EXCLUDES[@]}"; do
+        FDFIND_EXCLUDES+=" --exclude $dir"
+    done
+    unset dir
 
-export FZF_DEFAULT_COMMAND="fdfind --type f --hidden$FDFIND_EXCLUDES"
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_ALT_C_COMMAND="fdfind --type d --hidden$FDFIND_EXCLUDES"
+    export FZF_DEFAULT_COMMAND="fdfind --type f --hidden$FDFIND_EXCLUDES"
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_ALT_C_COMMAND="fdfind --type d --hidden$FDFIND_EXCLUDES"
+fi
 
 if [[ ${BLE_VERSION-} ]]; then
     # ble.sh ships its own fzf integration and it must be used instead of the
     # stock scripts: those bind Ctrl+R/Ctrl+T through readline, which ble.sh no
     # longer uses, and fzf's Ctrl+R would fight ble.sh over the history widget.
     # The modules locate Ubuntu's /usr/share/doc/fzf/examples themselves.
-    ble-import -d integration/fzf-completion
-    ble-import -d integration/fzf-key-bindings
+    if command -v fzf >/dev/null 2>&1; then
+        ble-import -d integration/fzf-completion
+        ble-import -d integration/fzf-key-bindings
+    fi
 else
     # Enable fzf keybindings (Ubuntu 24.04 apt installation)
     if [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
@@ -171,8 +181,12 @@ fi
 
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
 
-# Starship bash wrapper
-eval "$(starship init bash)"
+# Starship bash wrapper. Guarded: `./install.sh --configs` without --starship
+# must not greet every new shell with "starship: command not found" -- the
+# stock PS1 set further up stays in effect instead.
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init bash)"
+fi
 
 
 # Use ls colors for completion
@@ -203,6 +217,20 @@ if [[ ! ${BLE_VERSION-} ]]; then
     # no default binding in readline at all, hence the \e[3;5~ line.
     bind '"\C-h": backward-kill-word'
     bind '"\e[3;5~": kill-word'
+fi
+
+
+# ---------------------------------------------------------------------------
+# Machine-local additions  --  ~/.bashrc.local
+# ---------------------------------------------------------------------------
+# ./install.sh --configs replaces this whole file, so anything appended to it
+# by hand or by other installers (nvm, conda, cargo, sdkman, ...) is lost on the
+# next deploy -- and would land AFTER ble-attach anyway, which must stay last.
+# Put such lines in ~/.bashrc.local instead: it is never deployed, captured or
+# removed by cli_tweaks, and it is sourced here, after everything above (so it
+# can override any of it) but still before ble.sh attaches.
+if [ -f "$HOME/.bashrc.local" ]; then
+    . "$HOME/.bashrc.local"
 fi
 
 

@@ -11,15 +11,15 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Terminal emulator     | **alacritty** (`shared/alacritty.toml`)| ✅     | 📝          | ✅              |
 | Font                  | FiraCode Nerd Font                   | ✅       | 📝          | ✅              |
 | `ls` w/ icons         | **eza** — `l` `la` `lss`             | ✅       | 🟡 partial  | ✅              |
-| `tree`                | eza `--tree` + `tr` fn               | ✅       | 🟡 uses `tree`| ✅            |
-| find                  | `fin` helper                         | ✅       | 🚫          | ✅              |
-| Fuzzy search          | **fzf** + fd (Ctrl+T/R, Alt+C)       | ✅       | 🟡 no fd cfg| ✅ (PSFzf)      |
+| `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | 🟡 untested |
+| find                  | `fin` — fd from the current dir      | ✅       | 📝          | ✅              |
+| Fuzzy search          | **fzf** + fd (Ctrl+T/R, Alt+C)       | ✅       | 🟡 no fd cfg| ✅ (PSFzf; Alt+C 🟡 untested) |
 | Inline autosuggestion | grey text as you type                | ✅ ble.sh| ✅ zsh-autosuggestions | ✅ PSReadLine |
 | Input-line colours    | Tokyo Night faces (`Ubuntu24/configs/.blerc`) | ✅ | 📝          | 📝              |
 | Smart cd              | **zoxide** (`z`)                     | 🟡 *not wired* | 🟡 *not wired* | ✅          |
-| History (big, dedup, prefix ↑↓) | shell history opts        | ✅       | ✅          | ✅ (PSReadLine) |
-| git shortcuts         | `gs` (+ `gd` `gl`)                   | ✅ gs    | ✅ gs/gd/gl/gl1| ✅ gs/gd/gl    |
-| System monitor        | **btop** (`top`/`htop`)             | ✅       | 🚫          | ✅ (btop4win)   |
+| History (big, dedup, prefix ↑↓) | shell history opts        | ✅       | 🟡 blind, untested | ✅ (PSReadLine) |
+| git shortcuts         | `gs` `gd` `gl`                       | 🟡 gs only | ✅ gs/gd/gl/gl1| 🟡 gs/gd/gl (`gl` fix untested) |
+| System monitor        | **btop** (`top`/`htop`)             | ✅       | 📝          | ✅ (btop4win)   |
 | Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅       | ✅          | 🚫 (no tmux)    |
 | Copy to clipboard     | tmux copy-pipe + `Alt+W` on the line | ✅ xclip | 🟡 pbcopy, untested | 🟡 terminal only |
 | Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | 🟡 blind, untested | ✅       |
@@ -52,14 +52,42 @@ real bugs were fixed: `.bashrc` sourced fzf's completion before bash-completion
 installer had no uninstaller and destroyed the user's original dotfiles by
 re-backing-up its own output on each run.
 
+Review pass on 2026-10-05 (code read + checks on the Ubuntu laptop) fixed
+several things that looked fine but were not:
+
+- **`tr` is gone**, folded into `tree [depth] [path]` plus `tree1`..`tree9`
+  shorthands (`tree3 /etc`), on all three shells. A bash function named `tr` shadowed
+  coreutils `tr`: `echo foo | tr a-z A-Z` printed the helper's usage, and the
+  bash-completion scripts for gcc, java, update-rc.d, invoke-rc.d,
+  add-apt-repository and xdg-settings call `tr` internally, so their `Tab`
+  silently broke.
+- **Windows `gl` printed the current directory**: `gl` is PowerShell's built-in
+  alias for `Get-Location`, and aliases beat functions. The profile now
+  removes it first (not yet re-checked on Windows).
+- **macOS UP/DOWN** used zsh's `history-search-backward`, which matches only the
+  *first word* of the line; now `up/down-line-or-beginning-search` (whole
+  prefix, cursor to end) — still untested on a Mac.
+- **`fin`** on Ubuntu was `sudo find /` (password, crawls /proc and every
+  mount); it now matches Windows: fd from the current directory. Both shells
+  use the same fzf `--exclude` list.
+- `l`/`la`/`lss` lost eza's `-h`, which is `--header`, not "human-readable".
+- `tk` outside tmux now lists the sessions and asks before `kill-server`.
+- Installers/uninstallers: re-runs no longer relabel what we installed as
+  `preexisting` (Ubuntu), pre-existing fonts and pwsh modules are kept on
+  uninstall, `uninstall.ps1 -Cosmetic` is safe to repeat, and `install.ps1`
+  writes its manifest even when a component fails.
+
 ## Known drift / cleanup to reconcile
 
 - **zoxide is documented but never wired.** The macOS README tells you to
   `brew install zoxide`, but neither `.zshrc` nor Ubuntu's `.bashrc` runs
   `zoxide init`. Decision: **adopt zoxide as canonical** and add `zoxide init`
   to Ubuntu, macOS, Windows, and (optionally) remote.
-- **git aliases differ**: Ubuntu has only `gs`; macOS has `gs/gd/gl/gl1`.
-  Canonical set going forward: `gs`, `gd`, `gl` (drop `gl1` or fold into `gl`).
-- **tree**: macOS aliases the classic `tree` binary; canonical is eza `--tree`.
+- **git aliases differ**: Ubuntu — the canonical platform — has only `gs`,
+  while Windows has `gs/gd/gl` and macOS `gs/gd/gl/gl1`. Canonical set going
+  forward: `gs`, `gd`, `gl` (add `gd`/`gl` to Ubuntu; drop `gl1` or fold it
+  into `gl`).
+- **`fin`, btop on macOS** are simply not wired yet (part of PLAN step 3), not
+  "not applicable".
 - **tmux.conf** is duplicated (`Ubuntu24/` and `macos/`) and 99% identical —
   candidate to move into `shared/tmux.conf`.

@@ -74,15 +74,28 @@ if ((Get-Module -ListAvailable PSReadLine) -and -not [Console]::IsOutputRedirect
 # ---------------------------------------------------------------------------
 # fzf fuzzy search  (Ctrl+T files, Ctrl+R history, Alt+C cd) with fd backend
 # ---------------------------------------------------------------------------
+# Same exclude list as Ubuntu's ~/.bashrc - keep the two in sync.
 if (Get-Command fd -ErrorAction SilentlyContinue) {
-    $env:FZF_DEFAULT_COMMAND = 'fd --type f --hidden --exclude .git --exclude .cache'
+    $__fzfExcludes = (@('.git', '.vscode', '.vscode-shared', '.cache', '.config', '.local') |
+        ForEach-Object { "--exclude $_" }) -join ' '
+    $env:FZF_DEFAULT_COMMAND = "fd --type f --hidden $__fzfExcludes"
     $env:FZF_CTRL_T_COMMAND  = $env:FZF_DEFAULT_COMMAND
-    $env:FZF_ALT_C_COMMAND   = 'fd --type d --hidden --exclude .git --exclude .cache'
+    $env:FZF_ALT_C_COMMAND   = "fd --type d --hidden $__fzfExcludes"
+    Remove-Variable __fzfExcludes
 }
 # PSFzf's Import-Module throws if the fzf binary isn't on PATH, so require it.
 if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvailable PSFzf)) {
     Import-Module PSFzf
     Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+t' -PSReadlineChordReverseHistory 'Ctrl+r'
+    # Alt+C = fuzzy cd. The two chords above do not include it, so bind it by
+    # hand (works on every PSFzf version), then redraw so the prompt shows the
+    # new directory. NOTE: added from Linux - still needs a check on Windows.
+    if (Get-Command Invoke-FuzzySetLocation -ErrorAction SilentlyContinue) {
+        Set-PSReadLineKeyHandler -Key Alt+c -ScriptBlock {
+            Invoke-FuzzySetLocation
+            [Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()
+        }
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -98,24 +111,42 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
 Remove-Item Alias:l    -ErrorAction SilentlyContinue  # PS ships some of these
 Remove-Item Alias:tree -ErrorAction SilentlyContinue
 
+# No -h in the eza flags: for eza that is --header (a column-title row), not
+# ls's "human-readable" - eza sizes are human-readable already.
 if (Get-Command eza -ErrorAction SilentlyContinue) {
-    function l   { eza -AlhF --icons=always --group-directories-first @args }
-    function la  { eza -AlhF --icons=always --group-directories-first --total-size @args }
-    function lss { eza -AlhF --icons=always --group-directories-first --total-size --sort=size --reverse @args }
-    function tree { eza --tree --icons=always @args }
-    # tr [depth] [path]  — like `tree -L`
-    function tr {
-        param([string]$a, [string]$b)
-        if (-not $a)                 { eza --tree --icons=always }
-        elseif ($a -match '^\d+$' -and $b) { eza --tree --icons=always --level=$a $b }
-        elseif ($a -match '^\d+$')   { eza --tree --icons=always --level=$a }
-        else                         { eza --tree --icons=always $a }
+    function l   { eza -AlF --icons=always --group-directories-first @args }
+    function la  { eza -AlF --icons=always --group-directories-first --total-size @args }
+    function lss { eza -AlF --icons=always --group-directories-first --total-size --sort=size --reverse @args }
+    # tree [depth] [args...] — eza tree; a leading number is the depth:
+    #   tree 3 C:\src  ==  eza --tree --level=3 C:\src
+    # tree1 .. tree9 are shorthands: tree3 C:\src == tree 3 C:\src.
+    # Same as Ubuntu. Shadows Windows' tree.com (`tree.com` still reaches it).
+    function tree {
+        if ($args.Count -and "$($args[0])" -match '^\d+$') {
+            $rest = @($args | Select-Object -Skip 1)
+            eza --tree --icons=always "--level=$($args[0])" @rest
+        } else {
+            eza --tree --icons=always @args
+        }
     }
+    function tree1 { tree 1 @args }
+    function tree2 { tree 2 @args }
+    function tree3 { tree 3 @args }
+    function tree4 { tree 4 @args }
+    function tree5 { tree 5 @args }
+    function tree6 { tree 6 @args }
+    function tree7 { tree 7 @args }
+    function tree8 { tree 8 @args }
+    function tree9 { tree 9 @args }
 }
 
 function c  { Clear-Host }
 function gs { git status @args }
 function gd { git diff @args }
+# `gl` is a built-in alias for Get-Location, and PowerShell resolves aliases
+# BEFORE functions -- without this line `gl` prints the current directory and
+# the function below is never reached. -Force: built-in aliases can be ReadOnly.
+Remove-Item Alias:gl -Force -ErrorAction SilentlyContinue
 function gl { git log --graph @args }
 
 # fin <pattern> — fuzzy/recursive find from current dir (fd, fallback to native)

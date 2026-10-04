@@ -5,58 +5,74 @@ alias gs='git status'
 # alias la='ls -AlhF'
 # alias l='ls -lAhF --group-directories-first  --color=auto'
 
-# eza is colored ls with icons
-alias l='eza -AlhF --icons=always --group-directories-first'
-alias la='eza -AlhF --icons=always --group-directories-first  --total-size'
+# eza is colored ls with icons.
+# No -h here: for eza that is --header (a column-title row), not ls's
+# "human-readable" -- eza prints human-readable sizes by default.
+alias l='eza -AlF --icons=always --group-directories-first'
+alias la='eza -AlF --icons=always --group-directories-first  --total-size'
 # other colors for size:
-# alias l='eza -AlhF --icons=always --group-directories-first --total-size --color-scale=all'
-alias lss="eza -AlhF --icons=always --group-directories-first --total-size --sort=size --reverse"
+# alias l='eza -AlF --icons=always --group-directories-first --total-size --color-scale=all'
+alias lss="eza -AlF --icons=always --group-directories-first --total-size --sort=size --reverse"
 
-alias tree='eza --tree --icons=always'
-
-
-# tr 5 means tree -L 5
-tr() {
-    case $# in
-        0)
-            tree
-            ;;
-        1)
-            if [[ $1 =~ ^[0-9]+$ ]]; then
-                tree -L "$1"
-            else
-                tree "$1"
-            fi
-            ;;
-        2)
-            if [[ $1 =~ ^[0-9]+$ ]]; then
-                tree -L "$1" "$2"
-            else
-                echo "Usage: tr [depth] [path]"
-                echo "Examples:"
-                echo "  tr"
-                echo "  tr 3"
-                echo "  tr /"
-                echo "  tr 3 /"
-                return 1
-            fi
-            ;;
-        *)
-            echo "Usage: tr [depth] [path]"
-            echo "Examples:"
-            echo "  tr"
-            echo "  tr 3"
-            echo "  tr /"
-            echo "  tr 3 /"
-            return 1
-            ;;
-    esac
+# ---------------------------------------------------------------------------
+# tree  --  eza's tree view, with an optional depth in front
+# ---------------------------------------------------------------------------
+#   tree              whole tree of the current dir
+#   tree 3            3 levels deep           (= eza --tree --level=3)
+#   tree 3 /etc       3 levels of /etc
+#   tree /etc -a      anything else goes straight to eza
+#   tree1 .. tree9    shorthand: tree3 /etc == tree 3 /etc
+#
+# This shadows the classic tree(1) binary in interactive shells (the old
+# `alias tree=` did the same); `command tree` still reaches it. Scripts are
+# unaffected -- functions only live in this shell.
+#
+# History: this used to be a separate helper named `tr`, which shadowed
+# coreutils tr(1) -- `echo foo | tr a-z A-Z` printed its usage, and the
+# bash-completion scripts that call `tr` internally (gcc, java, update-rc.d,
+# invoke-rc.d, add-apt-repository, xdg-settings) silently completed garbage.
+# Never name a helper after a standard command.
+#
+# unalias first: an alias beats a function at call time, and the old
+# `alias tree=` would also be expanded inside the definition below if this
+# file is re-sourced in a shell that still has it.
+unalias tree 2>/dev/null
+tree() {
+    if [[ ${1-} =~ ^[0-9]+$ ]]; then
+        local depth=$1
+        shift
+        eza --tree --icons=always --level="$depth" "$@"
+    else
+        eza --tree --icons=always "$@"
+    fi
 }
+tree1() { tree 1 "$@"; }
+tree2() { tree 2 "$@"; }
+tree3() { tree 3 "$@"; }
+tree4() { tree 4 "$@"; }
+tree5() { tree 5 "$@"; }
+tree6() { tree 6 "$@"; }
+tree7() { tree 7 "$@"; }
+tree8() { tree 8 "$@"; }
+tree9() { tree 9 "$@"; }
 
 
-# powerful easy find across every possible folder
+# fin <pattern> -- recursive find from the CURRENT directory, hidden and
+# git-ignored files included. Same as `fin` on Windows: fd (apt: fdfind),
+# falling back to find(1). The pattern is fd's: a case-smart regex, matched
+# anywhere in the name. To search the whole disk, cd / first.
+# (Was `sudo find /`: a password prompt, a crawl through /proc, /sys and every
+# mount, and with no argument it dumped the entire filesystem.)
 fin() {
-    sudo find / -iname "*$1*" 2>/dev/null
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: fin <pattern>   (searches from the current directory)"
+        return 1
+    fi
+    if command -v fdfind >/dev/null 2>&1; then
+        fdfind --hidden --no-ignore -- "$1"
+    else
+        find . -iname "*$1*" 2>/dev/null
+    fi
 }
 
 alias top="btop"
@@ -73,11 +89,19 @@ ta() {
         tmux attach -t "$session"
     fi
 }
+# tk: inside tmux, kill the current session. Outside tmux the only target is
+# the whole server, i.e. EVERY session -- so list them and ask first.
 tk() {
     if [ -n "$TMUX" ]; then
         tmux kill-session -t "$(tmux display-message -p '#S')"
     else
-        tmux kill-server
+        tmux ls 2>/dev/null || { echo "No tmux sessions found"; return 0; }
+        local reply
+        printf 'Kill ALL tmux sessions above? [y/N] '
+        read -r reply
+        if [[ $reply == [yY]* ]]; then
+            tmux kill-server
+        fi
     fi
 }
 tn() {

@@ -14,7 +14,8 @@ everywhere.
 - **Fuzzy search:** fzf + fd — `Ctrl+T` files, `Ctrl+R` history, `Alt+C` cd
 - **Inline autosuggestions:** grey completion-as-you-type from history —
   ble.sh (bash), zsh-autosuggestions (zsh), PSReadLine prediction (pwsh)
-- **Macros:** `l`/`la`/`lss` (eza), `tr` (tree), `fin` (find), `gs` (git status),
+- **Macros:** `l`/`la`/`lss` (eza), `tree [depth]` / `tree3` (eza tree), `fin` (find from the current
+  dir), `gs` (git status),
   `top`/`htop` → btop, tmux helpers `t`/`ta`/`tk`/`tn` (Linux/macOS)
 
 See **[docs/PARITY.md](docs/PARITY.md)** for exactly what's wired on each platform.
@@ -25,7 +26,7 @@ Planned work (macOS parity, SSH config, Raspberry Pi) lives in
 
 | Platform | How to install |
 |----------|----------------|
-| **Linux (Ubuntu 24)** | `cd Ubuntu24 && chmod +x install.sh scripts/*.sh && ./install.sh --all` |
+| **Linux (Ubuntu 24)** | `cd Ubuntu24 && ./install.sh --all` |
 | **Windows 11** | `cd windows; ./install.ps1 -All`  *(installs PowerShell 7 + tools; draft)* |
 | **macOS** | 📝 planned — see [docs/PLAN.md](docs/PLAN.md) |
 
@@ -41,7 +42,10 @@ Windows example:
 ./install.ps1 -Shell -Packages -Starship -Configs   # pwsh7 + tools + prompt + profile
 ```
 
-Existing dotfiles are backed up (`*.bak.<timestamp>`) before anything is written.
+Your original dotfiles are captured **once**, on the first install, before
+anything is overwritten, and every install is recorded in a manifest so the
+platform's uninstaller (`Ubuntu24/uninstall.sh`, `windows/uninstall.ps1`) can
+put things back without ever removing something that was already there.
 
 ## Repo layout
 

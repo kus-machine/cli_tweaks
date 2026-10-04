@@ -104,15 +104,24 @@ function Register-File([string]$Path, $Backup) {
         [void]$Files_.Add([pscustomobject]@{ path = $Path; backup = $Backup })
     }
 }
-function Register-Module([string]$Name, [string]$Path) {
+# $Pre = the module dir already existed before we touched it. uninstall.ps1
+# never removes a module flagged preexisting. Like every Register-*, the FIRST
+# record wins, so a re-run cannot relabel a module we saved as pre-existing.
+function Register-Module([string]$Name, [string]$Path, [bool]$Pre) {
     if (-not ($Modules_ | Where-Object { $_.name -eq $Name })) {
-        [void]$Modules_.Add([pscustomobject]@{ name = $Name; path = $Path })
+        [void]$Modules_.Add([pscustomobject]@{ name = $Name; path = $Path; preexisting = $Pre })
     }
 }
-function Register-Font([string]$File, [string]$RegValue) {
+# $Pre = the font file was already there before our first install (you had
+# FiraCode Nerd Font already). uninstall.ps1 keeps such files and their
+# registry values, even though the install refreshes them.
+function Register-Font([string]$File, [string]$RegValue, [bool]$Pre) {
     if (-not ($Fonts_ | Where-Object { $_.file -eq $File })) {
-        [void]$Fonts_.Add([pscustomobject]@{ file = $File; regValue = $RegValue })
+        [void]$Fonts_.Add([pscustomobject]@{ file = $File; regValue = $RegValue; preexisting = $Pre })
     }
+}
+function Test-FileRegistered([string]$Path) {
+    return [bool]($Files_ | Where-Object { $_.path -eq $Path })
 }
 
 function Get-PwshPath {
@@ -137,11 +146,19 @@ function Winget-Install([string]$Id) {
     Register-Package $Id $pre
 }
 
+# Capture the original ONCE (same rule as deploy_file on Ubuntu): if the
+# manifest already knows this path, the file there is our own earlier deploy
+# and the original is already safe in the recorded backup - just overwrite.
+# Backing it up again on every run only piled up .bak copies of our config.
 function Copy-Config([string]$Src, [string]$Dst) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Dst) | Out-Null
-    $bak = Backup-Move $Dst
+    if (-not (Test-FileRegistered $Dst)) {
+        $bak = Backup-Move $Dst
+        # Record the backup BEFORE copying: if the copy fails, the original is
+        # already moved aside and the manifest must still know where it went.
+        Register-File $Dst $bak
+    }
     Copy-Item $Src $Dst -Force
-    Register-File $Dst $bak
     Write-Host "  installed $Dst" -ForegroundColor Green
 }
 
@@ -176,150 +193,167 @@ if (-not ($All -or $Shell -or $Packages -or $Fonts -or $Starship -or $Configs -o
     exit 1
 }
 
-# --- PowerShell 7 ----------------------------------------------------------
-if ($All -or $Shell) {
-    Write-Host "== PowerShell 7 ==" -ForegroundColor Yellow
-    Winget-Install 'Microsoft.PowerShell'
-    Write-Host "  NOTE: reopen in 'pwsh' (not Windows PowerShell 5.1) after install." -ForegroundColor DarkYellow
-}
-
-# --- CLI packages ----------------------------------------------------------
-if ($All -or $Packages) {
-    Write-Host "== CLI packages ==" -ForegroundColor Yellow
-    $ids = @(
-        'junegunn.fzf',            # fuzzy finder
-        'sharkdp.fd',              # fd (fzf backend / fin)
-        'eza-community.eza',       # ls replacement w/ icons
-        'ajeetdsouza.zoxide',      # smarter cd (z)
-        'BurntSushi.ripgrep.MSVC', # rg
-        'sharkdp.bat',             # bat
-        'aristocratos.btop4win'    # btop (command name on Windows is btop4win)
-    )
-    foreach ($id in $ids) { Winget-Install $id }
-
-    # PSFzf must land in pwsh7's module scope (Documents\PowerShell\Modules), NOT
-    # 5.1's. Save it straight there. (Piping an inline -Command into pwsh from
-    # 5.1 mangles quotes, so we only ask pwsh for its module path.)
-    if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
-        Install-PackageProvider -Name NuGet -Scope CurrentUser -Force | Out-Null
+# Everything below runs inside try/finally so the manifest is written even
+# when a component throws ($ErrorActionPreference = Stop): files already
+# moved aside and packages already installed must stay revertible, and a
+# re-run must not mistake our own deployed config for your original.
+try {
+    # --- PowerShell 7 ----------------------------------------------------------
+    if ($All -or $Shell) {
+        Write-Host "== PowerShell 7 ==" -ForegroundColor Yellow
+        Winget-Install 'Microsoft.PowerShell'
+        Write-Host "  NOTE: reopen in 'pwsh' (not Windows PowerShell 5.1) after install." -ForegroundColor DarkYellow
     }
-    if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
-        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-    }
-    $pwshPath = Get-PwshPath
-    if ($pwshPath) {
-        $pwshProfile = & $pwshPath -NoProfile -Command '$PROFILE.CurrentUserAllHosts'
-        $modDir = Join-Path (Split-Path $pwshProfile) 'Modules'
-        New-Item -ItemType Directory -Force -Path $modDir | Out-Null
-        # PSFzf = fzf keybindings; posh-git = git tab completion.
-        foreach ($mod in @('PSFzf', 'posh-git')) {
-            if (Test-Path (Join-Path $modDir $mod)) {
-                Write-Host "  $mod already present in pwsh7 scope." -ForegroundColor DarkGray
-            } else {
-                Write-Host "  $mod module -> $modDir" -ForegroundColor Cyan
-                Save-Module -Name $mod -Path $modDir -Force
-            }
-            Register-Module $mod (Join-Path $modDir $mod)
+
+    # --- CLI packages ----------------------------------------------------------
+    if ($All -or $Packages) {
+        Write-Host "== CLI packages ==" -ForegroundColor Yellow
+        $ids = @(
+            'junegunn.fzf',            # fuzzy finder
+            'sharkdp.fd',              # fd (fzf backend / fin)
+            'eza-community.eza',       # ls replacement w/ icons
+            'ajeetdsouza.zoxide',      # smarter cd (z)
+            'BurntSushi.ripgrep.MSVC', # rg
+            'sharkdp.bat',             # bat
+            'aristocratos.btop4win'    # btop (command name on Windows is btop4win)
+        )
+        foreach ($id in $ids) { Winget-Install $id }
+
+        # PSFzf must land in pwsh7's module scope (Documents\PowerShell\Modules), NOT
+        # 5.1's. Save it straight there. (Piping an inline -Command into pwsh from
+        # 5.1 mangles quotes, so we only ask pwsh for its module path.)
+        if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+            Install-PackageProvider -Name NuGet -Scope CurrentUser -Force | Out-Null
         }
-    } else {
-        Write-Host "  pwsh7 not found. Run './install.ps1 -Shell' first, then re-run '-Packages'." -ForegroundColor DarkYellow
-    }
-}
-
-# --- Starship --------------------------------------------------------------
-if ($All -or $Starship) {
-    Write-Host "== Starship ==" -ForegroundColor Yellow
-    Winget-Install 'Starship.Starship'
-    Copy-Config (Join-Path $Shared 'starship.toml') (Join-Path $HOME '.config\starship.toml')
-}
-
-# --- PowerShell profile ----------------------------------------------------
-if ($All -or $Configs) {
-    Write-Host "== PowerShell profile ==" -ForegroundColor Yellow
-    $pwshProfile = Join-Path $HOME 'Documents\PowerShell\profile.ps1'
-    Copy-Config (Join-Path $PSScriptRoot 'Microsoft.PowerShell_profile.ps1') $pwshProfile
-}
-
-# --- Alacritty (shared config + Windows pwsh-shell overlay) ----------------
-if ($All -or $Alacritty) {
-    Write-Host "== Alacritty ==" -ForegroundColor Yellow
-    Winget-Install 'Alacritty.Alacritty'
-    $dst = Join-Path $env:APPDATA 'alacritty\alacritty.toml'
-    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
-    $bak  = Backup-Move $dst
-    $base = (Get-Content (Join-Path $Shared 'alacritty.toml') -Raw).TrimEnd()
-    $over = Get-Content (Join-Path $PSScriptRoot 'alacritty-windows.toml') -Raw
-    Write-Utf8NoBom $dst ($base + "`r`n`r`n" + $over)
-    Register-File $dst $bak
-    Write-Host "  installed $dst (with pwsh shell overlay)" -ForegroundColor Green
-}
-
-# --- Fonts (FiraCode Nerd Font, per-user) ----------------------------------
-if ($All -or $Fonts) {
-    Write-Host "== FiraCode Nerd Font ==" -ForegroundColor Yellow
-    $tmp = New-Item -ItemType Directory -Force -Path (Join-Path $env:TEMP "firacode_$(Get-Random)")
-    $zip = Join-Path $tmp 'FiraCode.zip'
-    Invoke-WebRequest -Uri 'https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip' -OutFile $zip
-    Expand-Archive $zip -DestinationPath $tmp -Force
-    $fontDir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
-    New-Item -ItemType Directory -Force -Path $fontDir | Out-Null
-    Get-ChildItem $tmp -Filter '*.ttf' -Recurse | ForEach-Object {
-        $dest = Join-Path $fontDir $_.Name
-        Copy-Item $_.FullName $dest -Force
-        $regVal = "$($_.BaseName) (TrueType)"
-        New-ItemProperty -Path $FontRegKey -Name $regVal -Value $dest -PropertyType String -Force | Out-Null
-        Register-Font $dest $regVal
-    }
-    Remove-Item $tmp -Recurse -Force
-    Write-Host "  FiraCode Nerd Font installed (per-user)." -ForegroundColor Green
-}
-
-# --- Windows Terminal default profile -> PowerShell 7 ----------------------
-if ($All -or $SetDefaultTerminal) {
-    Write-Host "== Windows Terminal default profile -> PowerShell 7 ==" -ForegroundColor Yellow
-    if (Test-Path $WtSettings) {
-        $json = Get-Content $WtSettings -Raw -Encoding UTF8 | ConvertFrom-Json
-        $guid = Get-WtPwshProfileGuid $json
-        if ($guid) {
-            $prev = [string]$json.defaultProfile
-            $bak  = Backup-Copy $WtSettings
-            $raw  = Get-Content $WtSettings -Raw -Encoding UTF8
-            if ($raw -match '"defaultProfile"\s*:') {
-                $new = [regex]::Replace($raw, '("defaultProfile"\s*:\s*)"[^"]*"', ('${1}"' + $guid + '"'))
-            } else {
-                $new = [regex]::Replace($raw, '\{', ("{`r`n    " + '"defaultProfile": "' + $guid + '",'), 1)
+        if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        }
+        $pwshPath = Get-PwshPath
+        if ($pwshPath) {
+            $pwshProfile = & $pwshPath -NoProfile -Command '$PROFILE.CurrentUserAllHosts'
+            $modDir = Join-Path (Split-Path $pwshProfile) 'Modules'
+            New-Item -ItemType Directory -Force -Path $modDir | Out-Null
+            # PSFzf = fzf keybindings; posh-git = git tab completion.
+            foreach ($mod in @('PSFzf', 'posh-git')) {
+                $modPath = Join-Path $modDir $mod
+                $modPre  = Test-Path $modPath
+                Register-Module $mod $modPath $modPre
+                if ($modPre) {
+                    Write-Host "  $mod already present in pwsh7 scope (will not be removed on uninstall)." -ForegroundColor DarkGray
+                } else {
+                    Write-Host "  $mod module -> $modDir" -ForegroundColor Cyan
+                    Save-Module -Name $mod -Path $modDir -Force
+                }
             }
-            Write-Utf8NoBom $WtSettings $new
-            # preserve the ORIGINAL prev value across re-runs
-            if (-not $Wt_) {
-                $Wt_ = [pscustomobject]@{ path = $WtSettings; backup = $bak; prevDefaultProfile = $prev; newDefaultProfile = $guid }
-            } else {
-                $Wt_.newDefaultProfile = $guid
-            }
-            Write-Host "  defaultProfile set to pwsh7 ($guid). Prev was $prev." -ForegroundColor Green
         } else {
-            Write-Host "  Could not find a PowerShell 7 profile in Windows Terminal - skipped." -ForegroundColor DarkYellow
+            Write-Host "  pwsh7 not found. Run './install.ps1 -Shell' first, then re-run '-Packages'." -ForegroundColor DarkYellow
         }
-    } else {
-        Write-Host "  Windows Terminal settings.json not found - skipped." -ForegroundColor DarkYellow
     }
-}
 
-# --- Windows "Default terminal application" -> Windows Terminal (opt-in) ----
-if ($SetWindowsDefaultTerminalApp) {
-    Write-Host "== Windows default terminal application -> Windows Terminal ==" -ForegroundColor Yellow
-    $startup = 'HKCU:\Console\%%Startup'
-    $prevC = (Get-ItemProperty $startup -Name DelegationConsole  -ErrorAction SilentlyContinue).DelegationConsole
-    $prevT = (Get-ItemProperty $startup -Name DelegationTerminal -ErrorAction SilentlyContinue).DelegationTerminal
-    New-Item -Path $startup -Force | Out-Null
-    Set-ItemProperty -Path $startup -Name DelegationConsole  -Value $WtDelegationConsole
-    Set-ItemProperty -Path $startup -Name DelegationTerminal -Value $WtDelegationTerminal
-    if (-not $WinTerm_) {
-        $WinTerm_ = [pscustomobject]@{ prevConsole = [string]$prevC; prevTerminal = [string]$prevT }
+    # --- Starship --------------------------------------------------------------
+    if ($All -or $Starship) {
+        Write-Host "== Starship ==" -ForegroundColor Yellow
+        Winget-Install 'Starship.Starship'
+        Copy-Config (Join-Path $Shared 'starship.toml') (Join-Path $HOME '.config\starship.toml')
     }
-    Write-Host "  Set. Prev console=$prevC terminal=$prevT" -ForegroundColor Green
-}
 
-Save-Manifest
+    # --- PowerShell profile ----------------------------------------------------
+    if ($All -or $Configs) {
+        Write-Host "== PowerShell profile ==" -ForegroundColor Yellow
+        $pwshProfile = Join-Path $HOME 'Documents\PowerShell\profile.ps1'
+        Copy-Config (Join-Path $PSScriptRoot 'Microsoft.PowerShell_profile.ps1') $pwshProfile
+    }
+
+    # --- Alacritty (shared config + Windows pwsh-shell overlay) ----------------
+    if ($All -or $Alacritty) {
+        Write-Host "== Alacritty ==" -ForegroundColor Yellow
+        Winget-Install 'Alacritty.Alacritty'
+        $dst = Join-Path $env:APPDATA 'alacritty\alacritty.toml'
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
+        if (-not (Test-FileRegistered $dst)) {   # capture once - see Copy-Config
+            $bak = Backup-Move $dst
+            Register-File $dst $bak                # before writing
+        }
+        $base = (Get-Content (Join-Path $Shared 'alacritty.toml') -Raw).TrimEnd()
+        $over = Get-Content (Join-Path $PSScriptRoot 'alacritty-windows.toml') -Raw
+        Write-Utf8NoBom $dst ($base + "`r`n`r`n" + $over)
+        Write-Host "  installed $dst (with pwsh shell overlay)" -ForegroundColor Green
+    }
+
+    # --- Fonts (FiraCode Nerd Font, per-user) ----------------------------------
+    if ($All -or $Fonts) {
+        Write-Host "== FiraCode Nerd Font ==" -ForegroundColor Yellow
+        $tmp = New-Item -ItemType Directory -Force -Path (Join-Path $env:TEMP "firacode_$(Get-Random)")
+        $zip = Join-Path $tmp 'FiraCode.zip'
+        Invoke-WebRequest -Uri 'https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip' -OutFile $zip
+        Expand-Archive $zip -DestinationPath $tmp -Force
+        $fontDir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
+        New-Item -ItemType Directory -Force -Path $fontDir | Out-Null
+        Get-ChildItem $tmp -Filter '*.ttf' -Recurse | ForEach-Object {
+            $dest = Join-Path $fontDir $_.Name
+            $regVal = "$($_.BaseName) (TrueType)"
+            Register-Font $dest $regVal (Test-Path $dest)   # before overwriting it
+            Copy-Item $_.FullName $dest -Force
+            New-ItemProperty -Path $FontRegKey -Name $regVal -Value $dest -PropertyType String -Force | Out-Null
+        }
+        Remove-Item $tmp -Recurse -Force
+        Write-Host "  FiraCode Nerd Font installed (per-user)." -ForegroundColor Green
+    }
+
+    # --- Windows Terminal default profile -> PowerShell 7 ----------------------
+    if ($All -or $SetDefaultTerminal) {
+        Write-Host "== Windows Terminal default profile -> PowerShell 7 ==" -ForegroundColor Yellow
+        if (Test-Path $WtSettings) {
+            $json = Get-Content $WtSettings -Raw -Encoding UTF8 | ConvertFrom-Json
+            $guid = Get-WtPwshProfileGuid $json
+            if ($guid) {
+                $prev = [string]$json.defaultProfile
+                # Back up once: a re-run would only copy our own edit again.
+                $bak  = $null
+                if (-not $Wt_) { $bak = Backup-Copy $WtSettings }
+                $raw  = Get-Content $WtSettings -Raw -Encoding UTF8
+                if ($raw -match '"defaultProfile"\s*:') {
+                    $new = [regex]::Replace($raw, '("defaultProfile"\s*:\s*)"[^"]*"', ('${1}"' + $guid + '"'))
+                } else {
+                    # Insert after the FIRST "{" only. This needs the INSTANCE
+                    # Replace(input, replacement, count): the static
+                    # [regex]::Replace has no count overload, so a trailing 1 there
+                    # binds to RegexOptions (1 = IgnoreCase) and EVERY "{" in the
+                    # file gets the key injected - a corrupted settings.json.
+                    $new = ([regex]'\{').Replace($raw, ("{`r`n    " + '"defaultProfile": "' + $guid + '",'), 1)
+                }
+                # preserve the ORIGINAL prev value across re-runs; record before writing
+                if (-not $Wt_) {
+                    $Wt_ = [pscustomobject]@{ path = $WtSettings; backup = $bak; prevDefaultProfile = $prev; newDefaultProfile = $guid }
+                } else {
+                    $Wt_.newDefaultProfile = $guid
+                }
+                Write-Utf8NoBom $WtSettings $new
+                Write-Host "  defaultProfile set to pwsh7 ($guid). Prev was $prev." -ForegroundColor Green
+            } else {
+                Write-Host "  Could not find a PowerShell 7 profile in Windows Terminal - skipped." -ForegroundColor DarkYellow
+            }
+        } else {
+            Write-Host "  Windows Terminal settings.json not found - skipped." -ForegroundColor DarkYellow
+        }
+    }
+
+    # --- Windows "Default terminal application" -> Windows Terminal (opt-in) ----
+    if ($SetWindowsDefaultTerminalApp) {
+        Write-Host "== Windows default terminal application -> Windows Terminal ==" -ForegroundColor Yellow
+        $startup = 'HKCU:\Console\%%Startup'
+        $prevC = (Get-ItemProperty $startup -Name DelegationConsole  -ErrorAction SilentlyContinue).DelegationConsole
+        $prevT = (Get-ItemProperty $startup -Name DelegationTerminal -ErrorAction SilentlyContinue).DelegationTerminal
+        if (-not $WinTerm_) {
+            $WinTerm_ = [pscustomobject]@{ prevConsole = [string]$prevC; prevTerminal = [string]$prevT }
+        }
+        New-Item -Path $startup -Force | Out-Null
+        Set-ItemProperty -Path $startup -Name DelegationConsole  -Value $WtDelegationConsole
+        Set-ItemProperty -Path $startup -Name DelegationTerminal -Value $WtDelegationTerminal
+        Write-Host "  Set. Prev console=$prevC terminal=$prevT" -ForegroundColor Green
+    }
+} finally {
+    Save-Manifest
+}
 Write-Host "`nDone." -ForegroundColor Green
 exit 0   # avoid leaking a stray non-zero $LASTEXITCODE from winget subcommands

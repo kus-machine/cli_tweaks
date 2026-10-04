@@ -29,12 +29,23 @@ Read these first: [docs/PLAN.md](docs/PLAN.md) (roadmap + status + decisions),
    so partial installs never break the shell.
 5. **Never overwrite a user file without capturing the original first**, and
    capture it **once**. Use `deploy_file` in `Ubuntu24/scripts/common.sh` (or
-   `Backup-File` in `install.ps1`) — never a bare `install`/`cp`. `deploy_file`
+   `Copy-Config` in `install.ps1`) — never a bare `install`/`cp`. `deploy_file`
    snapshots the original into `~/.local/state/cli_tweaks/pristine/` on the
    first install only, and keys that decision off the *manifest*, not off
    "does the file exist" — otherwise a second run captures our own config as if
    it were the user's original. (The pre-2026-07 `backup_file` helper did
-   `mv file file.bak.<ts>` on every run and destroyed the real original.)
+   `mv file file.bak.<ts>` on every run and destroyed the real original.) On a
+   machine that old helper already touched, `deploy_file` takes the **oldest**
+   `<file>.bak` / `<file>.bak.*` beside the file as the original. `Copy-Config`
+   moves the original to `*.bak.<ts>` only when the manifest does not know the
+   path yet; later runs just overwrite.
+5a. **The first manifest record wins.** "It is installed now" must never
+   overwrite an earlier `preexisting: false` — on a re-run, what WE installed
+   last time is present too. `apt_install_tracked`, `record_bin`, `record_font`
+   and every `Register-*` in `install.ps1` keep an existing entry. Record an
+   action **before** doing it (moving a file, writing a registry value), and
+   `install.ps1` writes its manifest in a `finally`, so a failure halfway is
+   still revertible.
 6. Keep installers **componentised** with matching switches across platforms:
    `packages`, `fonts`, `starship`, `configs`, `alacritty` (+ `shell` on
    Windows for pwsh7, `blesh` on Ubuntu — Windows/macOS get inline
@@ -43,14 +54,27 @@ Read these first: [docs/PLAN.md](docs/PLAN.md) (roadmap + status + decisions),
 7. **Every install component must be revertible.** Record what it did in the
    manifest and undo it in the platform uninstaller
    (`Ubuntu24/uninstall.sh`, `windows/uninstall.ps1`). Both refuse to touch
-   anything flagged `preexisting`.
+   anything flagged `preexisting` (packages, binaries, dirs, fonts, pwsh
+   modules). Uninstallers must be **safe to repeat**: Ubuntu restores with
+   `cp` from the pristine store; `uninstall.ps1` drops every reverted entry
+   from the manifest, and never deletes a file whose recorded backup is
+   missing (that file is most likely the already-restored original).
 
 ## Keep parity in sync
 
-The same alias/function set must exist in all four shells. When you touch one,
-touch the others (or explicitly note the gap in PARITY.md):
+The same alias/function set must exist in all three shells (bash, zsh, pwsh).
+When you touch one, touch the others (or explicitly note the gap in PARITY.md):
 
-- `l` / `la` / `lss` (eza), `tr` (tree fn), `fin` (find), `c` (clear)
+- `l` / `la` / `lss` (eza), `tree [depth]` + `tree1`..`tree9` (eza tree fn),
+  `fin` (find from cwd), `c` (clear)
+  — **never name a helper after a standard command** that does something
+  *else*: the old `tr` function shadowed coreutils `tr`, breaking pipes and
+  bash-completion scripts. `tree` is the deliberate exception — it replaces
+  tree(1) with the same job, accepts its `-L`-style depth, and `command tree`
+  still reaches the binary. Function-based shims must `unalias` first (an alias
+  beats a function, and is expanded inside a re-sourced definition). In pwsh,
+  also check `Get-Alias <name>`: built-in aliases beat functions (`gl` is
+  `Get-Location` and must be removed first).
 - `gs` / `gd` / `gl` (git), `top`/`htop` → btop
 - fzf keybindings with an fd backend; UP/DOWN prefix history search
 - zoxide `z` (canonical, still being rolled out — see PARITY drift notes)
@@ -58,10 +82,15 @@ touch the others (or explicitly note the gap in PARITY.md):
 
 ## Environment / tooling gotchas
 
-- There are **two dev machines**. Check which one you are on before trusting
-  the notes below.
+- There are **three dev machines**. Check which one you are on (`hostname`)
+  before trusting the notes below.
   - **Ubuntu 24** (`SF-WS1181`): full coreutils, normal bash. Ubuntu changes
     can be tested here for real.
+  - **Ubuntu 24.04 laptop** (`apavlyuk-IdeaPad-Slim-5-14IRH10`, Wayland): also
+    real-testable, but no pwsh/zsh. As of 2026-10-05 it still runs an OLD
+    pre-manifest deploy (`~/.bashrc.bak` and `~/.bash_aliases.bak` are the
+    originals), ble.sh is not installed, and xclip is missing — a
+    `--packages` run was interrupted.
   - **Windows 11**: the **Bash tool there lacks coreutils** (`find`, `mkdir`,
     `echo` fail) — use PowerShell or the dedicated file tools for filesystem
     work, not `bash -c`.
@@ -80,7 +109,13 @@ touch the others (or explicitly note the gap in PARITY.md):
   touches `PROMPT_COMMAND` may come after `ble-attach`. Under ble.sh, fzf must
   come from `ble-import -d integration/fzf-{completion,key-bindings}`, not from
   `/usr/share/doc/fzf/examples/key-bindings.bash` (kept as the fallback for a
-  machine without ble.sh).
+  machine without ble.sh). Machine-local lines go in `~/.bashrc.local`, which
+  `.bashrc` sources just before `ble-attach` and cli_tweaks never deploys or
+  removes — don't tell users to append to `~/.bashrc` (the next `--configs`
+  overwrites it).
+- **The fzf `--exclude` list is duplicated** in `Ubuntu24/configs/.bashrc` and
+  the Windows profile (`.git .vscode .vscode-shared .cache .config .local`).
+  Change both.
 - **ble.sh's settings live in `Ubuntu24/configs/.blerc`, not in `.bashrc`**
   (ble.sh sources `~/.blerc` by itself). That file holds the autosuggestion
   options and a full **Tokyo Night** face palette that overrides ble.sh's
@@ -129,10 +164,15 @@ touch the others (or explicitly note the gap in PARITY.md):
 - **`windows/install.ps1` and `uninstall.ps1` must stay ASCII-only** — they run
   under Windows PowerShell 5.1, which reads a no-BOM `.ps1` as ANSI and turns
   em-dashes/smart quotes into phantom string delimiters that break parsing. The
-  pwsh7 **profile** may use non-ASCII (pwsh reads UTF-8).
+  pwsh7 **profile** may use non-ASCII (pwsh reads UTF-8). There is no pwsh on
+  the Ubuntu machines, so `.ps1` edits made there are unparsed until run on
+  Windows — say so.
+- **`[regex]::Replace(...)` has no count overload.** A trailing `, 1` binds to
+  `RegexOptions` (= IgnoreCase) and replaces *every* match. To replace only the
+  first, use the instance method: `([regex]'pat').Replace($s, $repl, 1)`.
 - **Install writes a manifest** (`%LOCALAPPDATA%\cli_tweaks\install-manifest.json`)
-  recording packages (+ `preexisting` flag), deployed files + backups, module,
-  fonts, and prior WT/terminal settings. `uninstall.ps1` reverts from it and
+  recording packages (+ `preexisting` flag), deployed files + backups, modules
+  and fonts (+ `preexisting`), and prior WT/terminal settings. `uninstall.ps1` reverts from it and
   **never removes anything flagged pre-existing**. Keep both in sync when you add
   an install component: record what it does in the manifest, revert it in uninstall.
 - Alacritty's pwsh shell lives in `windows/alacritty-windows.toml` (overlay

@@ -123,7 +123,9 @@ fi
 # --- 2. fonts --------------------------------------------------------------
 
 info "removing fonts we installed"
-mapfile -t fonts < <(jq -r '.fonts[].id' "$MANIFEST")
+# preexisting == true: the file was there before our first install - keep it.
+# Entries recorded before that flag existed carry none and count as ours.
+mapfile -t fonts < <(jq -r '.fonts[] | select(.preexisting != true) | .id' "$MANIFEST")
 if [[ ${#fonts[@]} -eq 0 ]]; then
     echo "  (none recorded)"
 else

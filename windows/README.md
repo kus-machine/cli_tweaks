@@ -32,8 +32,10 @@ application" — that stays opt-in (see below).
 
 Mix freely, e.g. `./install.ps1 -Shell -Packages -Starship -Configs -Alacritty`.
 
-Existing files are backed up to `*.bak.<timestamp>` before being replaced, and
-everything the installer does is recorded in a manifest (see below).
+An existing file is moved to `*.bak.<timestamp>` the **first** time it is
+replaced (re-runs just overwrite our own copy, no new backups), and everything
+the installer does is recorded in a manifest (see below) — written even if a
+component fails halfway.
 
 ## After installing
 
@@ -63,8 +65,12 @@ everything the installer does is recorded in a manifest (see below).
 ```
 
 It is driven by the manifest and **never removes anything that was already
-installed before** (those are flagged `preexisting` and skipped). Config files
-are restored from their backups; if no backup existed, our file is removed.
+installed before** — packages, the PSFzf/posh-git modules and font files are
+all flagged `preexisting` and skipped. Config files are restored from their
+backups; if no original existed, our file is removed. Each reverted entry is
+dropped from the manifest, so `-Cosmetic` is safe to run twice and `-Cosmetic`
+followed later by `-Full` never touches the restored originals. Without a
+manifest it only lists the known config paths and exits with code 1.
 Always try `-WhatIf` first.
 
 ## How it stays safe (the manifest)
@@ -74,7 +80,8 @@ Always try `-WhatIf` first.
 - which winget packages it installed, and whether each was **already present**
   (pre-existing packages are never uninstalled);
 - every config file it deployed and the path of the backup it took;
-- the PSFzf module location and the font files/registry values it added;
+- the PSFzf and posh-git module locations and the font files/registry values
+  it added (each with a `preexisting` flag);
 - the previous Windows Terminal default profile and Windows default-terminal-app
   values, so they can be restored exactly.
 

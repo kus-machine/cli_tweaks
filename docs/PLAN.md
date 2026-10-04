@@ -4,7 +4,7 @@
 Windows 11, and remote SSH targets (Raspberry Pi) — plus a clean, reworked set
 of installers and a good SSH config.
 
-_Last updated: 2026-07-28._
+_Last updated: 2026-10-05._
 
 ## Locked decisions
 
@@ -145,10 +145,51 @@ _Last updated: 2026-07-28._
   empty while tmux runs — the history is tmux's, so the copy must be tmux's.
 - macOS `.tmux.conf` got the same bindings with `pbcopy` — **untested**, no Mac.
 
+### Review fixes (done, 2026-10-05)
+Full repo review; fixed on the Ubuntu laptop (`apavlyuk-IdeaPad-Slim-5-14IRH10`),
+where the bash side was exercised for real. The Windows and macOS edits are
+**unvalidated** (no pwsh/zsh there).
+- **`tr` removed** (bash + pwsh + zsh): the bash function shadowed coreutils
+  `tr`, breaking pipes and the bash-completion of gcc/java/update-rc.d/... .
+  Its job moved into `tree [depth] [path]` plus `tree1`..`tree9` shorthands
+  (`tree3 /etc`); macOS's classic-`tree` alias and `tr1`..`tr4` went too.
+- **Manifest: first record wins.** A re-run of `--packages`/`--starship`
+  re-recorded what we installed last time as `preexisting: true` (verified by
+  simulation), so `uninstall.sh --full` would never remove it.
+  `apt_install_tracked`/`record_bin`/`record_font` now keep an existing entry.
+- **Legacy backups:** on a machine the pre-manifest installer touched,
+  `deploy_file` captures the oldest `<file>.bak*` as the pristine original
+  instead of the old cli_tweaks deploy sitting in `$HOME`.
+- **Fonts** already present before install are flagged `preexisting` and kept
+  on uninstall (Ubuntu + Windows).
+- `.bashrc`: starship, fzf-under-ble.sh and the fd-based `FZF_*` commands are
+  now guarded; new `~/.bashrc.local` hook before `ble-attach`.
+- `fin` = fd from the current dir (was `sudo find /`); `l`/`la`/`lss` drop
+  eza's `-h` (= `--header`); `tk` asks before killing the whole tmux server.
+- tmux declares `RGB` via `terminal-features` for `xterm-256color` and
+  `alacritty`; Alacritty no longer requests a FiraCode italic that does not
+  exist; `.gitattributes` pins `.blerc` to LF.
+- **Windows** (untested): `gl` alias for Get-Location removed so `gl` is
+  `git log`; Alt+C bound to PSFzf's fuzzy cd; fzf excludes match Ubuntu;
+  `install.ps1` records before acting, saves the manifest in `finally`,
+  backs up each config only once, flags pre-existing modules/fonts, and no
+  longer corrupts WT `settings.json` via `[regex]::Replace(..., 1)`;
+  `uninstall.ps1` drops reverted entries (safe to repeat), never deletes a
+  file whose backup is missing, keeps pre-existing modules/fonts, exits 1
+  without a manifest.
+- **macOS** (untested): UP/DOWN use `up/down-line-or-beginning-search` (zsh's
+  `history-search-backward` only matched the first word); plugins are looked
+  up in both Homebrew prefixes and syntax-highlighting is sourced last.
+
 _SSH config and the Raspberry Pi / remote profile are intentionally **plan-only**
 for now (below) — nothing implemented yet._
 
 ### 📝 Next up (priority order)
+0. **Validate the 2026-10-05 Windows changes on Windows**: parse both scripts
+   under 5.1 and pwsh 7, `gl` → git log, Alt+C, `uninstall.ps1 -Cosmetic`
+   twice with `-WhatIf` and for real. On the Ubuntu laptop: finish the
+   interrupted `--packages` (xclip is missing), then `--configs` and check
+   the pristine store holds `~/.bashrc.bak` / `~/.bash_aliases.bak`.
 1. **Windows: eyeball interactive session in a real terminal.** Installed +
    verified programmatically; Alacritty now launches pwsh7 automatically. Still
    worth opening Alacritty once to confirm the live starship prompt, the
@@ -157,7 +198,8 @@ for now (below) — nothing implemented yet._
 2. **Add zoxide to Ubuntu** `.bashrc` (`eval "$(zoxide init bash)"`) + package.
 3. **macOS rewrite to parity** (needs a Mac to test):
    - Add starship + `shared/starship.toml`.
-   - eza `l`/`la`/`lss`, `tr`, `fin`; fzf + fd backend; zoxide; btop.
+   - eza `l`/`la`/`lss`, `fin`; fzf + fd backend; zoxide; btop.
+     (`tree`/`tree1`..`tree9` already landed in `.zshrc`, untested.)
    - Pin `ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=fg=242` so the grey suggestion matches
      Ubuntu's ble.sh and Windows' PSReadLine.
    - Reconcile git aliases to `gs`/`gd`/`gl`.
@@ -178,6 +220,10 @@ for now (below) — nothing implemented yet._
 - A top-level cross-platform `bootstrap` doc / one-liner per OS.
 - Neovim config if the user adopts an editor beyond nano.
 - CI check that `shared/` files stay valid TOML.
+- **starship.toml dead config** (found 2026-10-05, not decided yet): `[time]`,
+  `[cmd_duration]` and `[status]` are configured but missing from the custom
+  `format`, and `[git_branch].symbol` is set but `$symbol` is not in its
+  format — none of them ever renders. Either add them to `format` or delete.
 
 ## Per-want traceability (original request)
 

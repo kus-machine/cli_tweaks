@@ -253,7 +253,7 @@ bleopt highlight_variable=1       # colour a name by its variable type
 ble-face command_file=fg=#7aa2f7          # external command: git, ls, ...
 ble-face command_builtin=fg=#7dcfff       # shell builtin: cd, echo, export
 ble-face command_builtin_dot=fg=#7dcfff   # . and :
-ble-face command_function=fg=#73daca      # your functions (tr, fin, ta, ...)
+ble-face command_function=fg=#73daca      # your functions (tree, fin, ta, ...)
 ble-face command_alias=fg=#73daca         # your aliases   (l, la, gs, ...)
 ble-face command_keyword=fg=#bb9af7       # if, for, while, function
 ble-face command_directory=fg=#7aa2f7     # bare path = implicit cd

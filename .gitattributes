@@ -9,6 +9,7 @@
 # dotfiles / configs without an extension
 .bashrc         text eol=lf
 .bash_aliases   text eol=lf
+.blerc          text eol=lf
 .tmux.conf      text eol=lf
 .zshrc          text eol=lf
 

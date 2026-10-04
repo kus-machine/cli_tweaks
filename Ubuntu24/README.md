@@ -13,11 +13,10 @@ Personal Ubuntu terminal setup including:
 
 ```bash
 git clone https://github.com/kus-machine/cli_tweaks.git
-cd cli_tweaks
-
-chmod +x install.sh uninstall.sh
-chmod +x scripts/*.sh
+cd cli_tweaks/Ubuntu24
 ```
+
+The scripts are committed as executable, so no `chmod` is needed.
 
 ## Available Components
 
@@ -26,6 +25,7 @@ chmod +x scripts/*.sh
 Installs useful command-line tools:
 
 - bash-completion (required — see [Tab completion](#tab-completion))
+- curl
 - git
 - xclip (clipboard — see [Copying text out of the terminal](#copying-text-out-of-the-terminal))
 - jq (used to track what the installer changes)
@@ -65,6 +65,16 @@ Installs:
 Your original files are captured **once**, on the first install, into
 `~/.local/state/cli_tweaks/pristine/` (plus one timestamped `.bak` beside the
 file). Re-running the installer does not pile up further backups.
+
+If an older, pre-manifest version of this installer already ran on the machine,
+the file in your home is *its* deploy, not your original. The installer notices
+the `.bak` / `.bak.<timestamp>` files that version left beside it and captures
+the **oldest** of them as your original instead (it says so in yellow).
+
+Machine-local lines — your own, or what nvm/conda/cargo/sdkman want to append —
+go in **`~/.bashrc.local`**, not in `~/.bashrc`: `--configs` replaces
+`~/.bashrc` on every run, while `~/.bashrc.local` is never touched and is
+sourced at the end of `.bashrc` (just before ble.sh attaches).
 
 ```bash
 ./install.sh --configs
@@ -112,7 +122,7 @@ Provides:
   |---|---|
   | external command (`git`) | blue `#7aa2f7` |
   | builtin (`cd`, `echo`) | cyan `#7dcfff` |
-  | your alias / function (`l`, `tr`) | teal `#73daca` |
+  | your alias / function (`l`, `tree`) | teal `#73daca` |
   | keyword (`if`, `for`) | magenta `#bb9af7` |
   | `"string"` / heredoc | green `#9ece6a` |
   | `$var`, `${...}`, globs, braces | yellow `#e0af68` |
@@ -206,6 +216,21 @@ put ble.sh there.
 The pristine copies are deliberately kept after `--full`, so a later re-install
 still has your real originals to fall back on. Delete
 `~/.local/state/cli_tweaks/` by hand if you want them gone.
+
+---
+
+## Macros
+
+| Command | Does |
+|---|---|
+| `l` / `la` / `lss` | eza long listing with icons; `la` adds directory sizes, `lss` sorts by size |
+| `tree [depth] [path]` | eza tree; `tree 3 /etc` = 3 levels of /etc; other args go to eza (`tree -a`). `command tree` is the classic binary |
+| `tree1` … `tree9` | shorthand for the depth: `tree3 /etc` = `tree 3 /etc` |
+| `fin <pattern>` | find files from the **current directory**, hidden and git-ignored included (fd; falls back to `find`) |
+| `gs` | `git status` |
+| `top` / `htop` | btop |
+| `t`, `tls`, `ta`, `tn` | tmux, list, attach to the first session, new session |
+| `tk` | inside tmux: kill this session; outside: list all sessions and ask before killing the server |
 
 ---
 

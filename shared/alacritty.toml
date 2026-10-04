@@ -13,7 +13,9 @@ dynamic_padding = true
 # Points to the Nerd Font so eza and Starship icons render perfectly
 normal = { family = "FiraCode Nerd Font", style = "Regular" }
 bold = { family = "FiraCode Nerd Font", style = "Bold" }
-italic = { family = "FiraCode Nerd Font", style = "Italic" }
+# No italic line: FiraCode ships no italic face, so asking for one made
+# fontconfig substitute a different font for italic text. Without it
+# Alacritty renders italics in the regular FiraCode face.
 size = 11.5
 
 [cursor]

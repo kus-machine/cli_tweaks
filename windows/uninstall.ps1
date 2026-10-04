@@ -8,8 +8,13 @@
                  Terminal default profile + Windows default-terminal-app).
                  Leaves all installed tools in place.
       -Full      Cosmetic, PLUS winget-uninstall the packages WE installed
-                 (never the ones flagged pre-existing), remove the PSFzf module,
-                 and remove only the font files/registry values we added.
+                 (never the ones flagged pre-existing), remove the PSFzf and
+                 posh-git modules we saved (never pre-existing ones), and
+                 remove only the font files/registry values we added.
+
+    Safe to repeat: -Cosmetic drops what it reverted from the manifest, so
+    running it twice, or -Cosmetic and later -Full, never deletes a restored
+    original.
 
     Supports -WhatIf for a dry run. PowerShell 7 (pwsh) is only removed when you
     pass -Yes (it is the shell you are likely running in).
@@ -52,7 +57,7 @@ if (-not (Test-Path $ManifestPath)) {
         $bak = Get-ChildItem "$_*.bak.*" -ErrorAction SilentlyContinue | Select-Object -Expand FullName
         "  {0}{1}" -f $_, $(if ($bak) { "   (backups: $($bak -join ', '))" } else { '' })
     }
-    exit 0
+    exit 1   # nothing was reverted - same as Ubuntu24/uninstall.sh
 }
 
 $man = Get-Content $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -71,6 +76,7 @@ if ($man.wt -and $man.wt.prevDefaultProfile -and (Test-Path $man.wt.path)) {
         if ($PSCmdlet.ShouldProcess($man.wt.path, "restore WT defaultProfile to $prev")) {
             Write-Utf8NoBom $man.wt.path $new
             Write-Host "  WT defaultProfile restored to $prev" -ForegroundColor Green
+            $man.wt = $null     # done - see "Persist" below
         }
     }
 }
@@ -85,23 +91,42 @@ if ($man.windowsTerminalApp) {
         Set-ItemProperty -Path $startup -Name DelegationConsole  -Value $pc
         Set-ItemProperty -Path $startup -Name DelegationTerminal -Value $pt
         Write-Host "  Windows default terminal app restored." -ForegroundColor Green
+        $man.windowsTerminalApp = $null
     }
 }
 
-# 3. Config files: restore backup if we had one, else remove our file
+# 3. Config files: restore backup if we had one, else remove our file.
+#
+# A file is removed ONLY when the manifest says no original ever existed
+# (backup = null). A recorded backup that is missing on disk is NOT the same
+# thing: it usually means an earlier run already moved it back, so the file at
+# $f.path IS your original - removing it would destroy it. Warn and leave it.
+$keepFiles = New-Object System.Collections.ArrayList
 foreach ($f in @($man.files)) {
     if (-not $f) { continue }
     if ($f.backup -and (Test-Path $f.backup)) {
         if ($PSCmdlet.ShouldProcess($f.path, "restore original from $($f.backup)")) {
             Move-Item $f.backup $f.path -Force
             Write-Host "  restored $($f.path)" -ForegroundColor Green
-        }
+        } else { [void]$keepFiles.Add($f) }
+    } elseif ($f.backup) {
+        Write-Host "  skip $($f.path): recorded backup $($f.backup) is gone - leaving the file as is" -ForegroundColor DarkYellow
+        [void]$keepFiles.Add($f)
     } elseif (Test-Path $f.path) {
         if ($PSCmdlet.ShouldProcess($f.path, "remove (no prior version existed)")) {
             Remove-Item $f.path -Force
             Write-Host "  removed $($f.path)" -ForegroundColor Green
-        }
+        } else { [void]$keepFiles.Add($f) }
     }
+}
+
+# Persist what was reverted. Without this the manifest still lists every file
+# after -Cosmetic, so a second run (or -Cosmetic followed by -Full) would find
+# the backups gone and treat your restored originals as ours. Dropping the
+# entries also lets a later install.ps1 record fresh backups of them.
+$man.files = @($keepFiles)
+if (-not $WhatIfPreference) {
+    Write-Utf8NoBom $ManifestPath ($man | ConvertTo-Json -Depth 6)
 }
 
 if ($Cosmetic) {
@@ -113,8 +138,14 @@ if ($Cosmetic) {
 # FULL: also remove tools / modules / fonts we installed
 # ===========================================================================
 
-# 4. PSFzf module
+# 4. PowerShell modules (PSFzf, posh-git) - only those WE saved. Entries
+# written before the preexisting flag existed carry none and are treated as
+# ours, as they always were.
 foreach ($mod in @($man.modules)) {
+    if ($mod -and $mod.preexisting) {
+        Write-Host "  skip module $($mod.name) (was already installed before)" -ForegroundColor DarkGray
+        continue
+    }
     if ($mod -and $mod.path -and (Test-Path $mod.path)) {
         if ($PSCmdlet.ShouldProcess($mod.path, "remove module $($mod.name)")) {
             Remove-Item $mod.path -Recurse -Force
@@ -123,9 +154,14 @@ foreach ($mod in @($man.modules)) {
     }
 }
 
-# 5. Fonts (only the files + registry values we added)
+# 5. Fonts (only the files + registry values we added). A font flagged
+# preexisting was there before our first install and is kept; entries written
+# before that flag existed carry none and count as ours.
+$fontsRemoved = 0
 foreach ($ft in @($man.fonts)) {
     if (-not $ft) { continue }
+    if ($ft.preexisting) { continue }
+    $fontsRemoved++
     if ($ft.file -and (Test-Path $ft.file)) {
         if ($PSCmdlet.ShouldProcess($ft.file, "remove font file")) { Remove-Item $ft.file -Force }
     }
@@ -135,7 +171,7 @@ foreach ($ft in @($man.fonts)) {
         }
     }
 }
-if (@($man.fonts).Count) { Write-Host "  removed $((@($man.fonts)).Count) font entries we added." -ForegroundColor Green }
+if ($fontsRemoved) { Write-Host "  removed $fontsRemoved font entries we added." -ForegroundColor Green }
 
 # 6. winget packages - ONLY those we installed (never pre-existing ones)
 foreach ($p in @($man.packages)) {

@@ -15,6 +15,7 @@ cli_tweaks/
 │   └── starship.toml        # prompt   — used by every shell
 ├── Ubuntu24/                # Linux — the CANONICAL experience
 │   ├── install.sh           # flag dispatcher (--packages --fonts ... --all)
+│   ├── uninstall.sh         # manifest-driven revert (--configs / --full)
 │   ├── scripts/*.sh         # one installer per component + common.sh
 │   └── configs/             # .bashrc, .bash_aliases, .blerc, .tmux.conf
 ├── macos/                   # macOS (zsh) — being brought up to parity
@@ -22,6 +23,8 @@ cli_tweaks/
 │   └── install.sh           # 📝 planned
 └── windows/                 # Windows 11 — native PowerShell 7
     ├── install.ps1          # winget-based, per-user, flag/switch model
+    ├── uninstall.ps1        # manifest-driven revert (-Cosmetic / -Full)
+    ├── alacritty-windows.toml  # pwsh-shell overlay appended to shared/alacritty.toml
     └── Microsoft.PowerShell_profile.ps1
 ```
 
@@ -43,8 +46,11 @@ are tracked in [PLAN.md](PLAN.md), not present in the tree yet.
 3. **Installers are componentised and idempotent-ish.** Each platform exposes
    the same component switches (`packages`, `fonts`, `starship`, `configs`,
    `alacritty`; Windows adds `shell` for pwsh7, Ubuntu adds `blesh` for the
-   inline autosuggestions bash lacks natively). Existing user files are backed
-   up (`*.bak.<timestamp>`) before being overwritten.
+   inline autosuggestions bash lacks natively). A user file is captured **once**
+   before it is first overwritten (Ubuntu: `~/.local/state/cli_tweaks/pristine/`;
+   Windows: `*.bak.<timestamp>`), and everything an install does goes into a
+   manifest that the uninstaller replays in reverse. Anything that was already
+   there is flagged `preexisting` and never removed.
 
 4. **Everything degrades gracefully.** Shell profiles guard each tool behind a
    presence check (`command -v` / `Get-Command`) so a partial install never
