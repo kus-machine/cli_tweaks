@@ -14,6 +14,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | 🟡 untested |
 | find                  | `fin` — fd from the current dir      | ✅       | 📝          | ✅              |
 | Fuzzy search          | **fzf** + fd (Ctrl+T/R, Alt+C)       | ✅       | 🟡 no fd cfg| ✅ (PSFzf; Alt+C 🟡 untested) |
+| Command examples      | **tldr** (tealdeer) + `F1` while typing | ✅ | 📝 | 📝 |
 | fzf previews          | bat file / eza tree / full command, `Ctrl+/` toggles | ✅ | 📝 | 📝 |
 | Inline autosuggestion | grey text as you type                | ✅ ble.sh| ✅ zsh-autosuggestions | ✅ PSReadLine |
 | Input-line colours    | Tokyo Night faces (`Ubuntu24/configs/.blerc`) | ✅ | 📝          | 📝              |

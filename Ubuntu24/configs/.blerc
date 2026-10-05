@@ -176,7 +176,9 @@ blehook/eval-after-load keymap_emacs blerc/f1-load-hook
 # bracketed-paste.proc receives the pasted text as character codes (CR / CRLF
 # already turned into LF = 10). A `before` advice may edit ADVICE_WORDS, the
 # argument list the original function is then called with ([0] is its name).
-ble/function#advice before ble/widget/bracketed-paste.proc '
+# -f: if a ble.sh update ever renames that internal function, skip quietly
+# instead of printing an error in every new shell.
+ble/function#advice -f before ble/widget/bracketed-paste.proc '
     local n=${#ADVICE_WORDS[@]}
     if ((n > 1 && ADVICE_WORDS[n-1] == 10)); then
         builtin unset -v "ADVICE_WORDS[n-1]"

@@ -45,14 +45,18 @@ fi
 # unalias first: an alias beats a function at call time, and the old
 # `alias tree=` would also be expanded inside the definition below if this
 # file is re-sourced in a shell that still has it.
+# Without eza it falls back to the classic tree(1) (-L = depth).
 unalias tree 2>/dev/null
 tree() {
+    local -a depth=()
     if [[ ${1-} =~ ^[0-9]+$ ]]; then
-        local depth=$1
+        depth=("$1")
         shift
-        eza --tree --icons=always --level="$depth" "$@"
+    fi
+    if command -v eza >/dev/null 2>&1; then
+        eza --tree --icons=always ${depth:+--level="${depth[0]}"} "$@"
     else
-        eza --tree --icons=always "$@"
+        command tree -C ${depth:+-L "${depth[0]}"} "$@"
     fi
 }
 tree1() { tree 1 "$@"; }
@@ -161,11 +165,24 @@ alert() {
 # cli_tweaks_f1 -- what F1 runs (bound in ~/.blerc, readline fallback in
 # ~/.bashrc): tldr for the command on the line being typed, tried as
 # "cmd-subcommand" first (git commit -> git-commit), then "cmd", then man.
+# Words that only wrap the real command are skipped first -- sudo, env, time,
+# nohup, nice, command, exec, VAR=value and their -options -- so
+# "sudo apt install" explains apt, not sudo.
 # $READLINE_LINE is the line; it is left untouched.
 cli_tweaks_f1() {
     local -a w
     read -ra w <<< "${READLINE_LINE-}"
-    local cmd=${w[0]-} sub=${w[1]-}
+    local i=0
+    while (( i < ${#w[@]} )); do
+        case ${w[i]} in
+            sudo|doas|env|time|nohup|nice|command|exec|builtin) ;;
+            -*)                 (( i > 0 )) || break ;;   # options of the wrapper
+            [A-Za-z_]*=*)       ;;                        # VAR=value
+            *)                  break ;;
+        esac
+        (( i++ ))
+    done
+    local cmd=${w[i]-} sub=${w[i+1]-}
     [[ $cmd ]] || return 0      # empty line: nothing to explain
     if command -v tldr >/dev/null 2>&1; then
         if [[ $sub && $sub != -* ]] && tldr "$cmd-$sub" 2>/dev/null; then return; fi
@@ -283,7 +300,7 @@ CAT
         $'l  la  lss\tlist · +sizes · by size'
         $'tree3 DIR\ttree, 3 levels (tree1…9)'
         $'fin TEXT\tfind by name, from here'
-        $'z DIR\tjump to a frequent folder'
+        $'z PART\tjump to a visited folder'
         $'gs  gd  gl\tgit status · diff · log'
         $'t  ta  tn  tk\ttmux · attach · new · kill'
         $'Ctrl+T Ctrl+R Alt+C\tfzf: file · history · cd'
@@ -367,7 +384,9 @@ CMD; alert	desktop popup when CMD finishes (done / failed)
 →  End  Ctrl+F	accept the grey suggestion
 Ctrl+→  Alt+F	accept one word of it
 ↑  ↓	history starting with what you typed
-Tab Tab	menu of choices · type to narrow · Enter takes one
+Tab	complete; the choices show up right away
+Tab again	pick from them · type to narrow · Enter takes one
+-  or  --  then Tab	the options, each with what it does
 Esc  Ctrl+G	close the menu / search / suggestion
 Ctrl+T  Ctrl+R  Alt+C	fzf: file · history line · folder to cd into
 	with a preview on the side · Ctrl+/ hides it
@@ -380,7 +399,7 @@ Ctrl+← →	jump one word
 F1	examples for the command you are typing (tldr)
 	git commit + F1 -> git-commit · no page? opens man
 
-# TMUX  (press Ctrl+B, release, then the key)
+# TMUX  ("Ctrl+B x" = press Ctrl+B, release, then x; the Alt keys need no Ctrl+B)
 Alt+1 … Alt+9	go to tab N (or click it in the top bar)
 Alt+T	new tab, in the current folder
 Alt+N   Alt+K	rename the tab · close tab (asks: Enter = yes)

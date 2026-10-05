@@ -272,7 +272,7 @@ easiest to forget, with `keys` for the rest:
 (  (   ,'            `/    /|  l  la  lss           list · +sizes · by size
  \  `-"             \'\   / |  tree3 DIR            tree, 3 levels (tree1…9)
   `.              ,  \ \ /  |  fin TEXT             find by name, from here
-   /`.          ,'-`----Y   |  z DIR                jump to a frequent folder
+   /`.          ,'-`----Y   |  z PART               jump to a visited folder
   (            ;        |   '  gs  gd  gl           git status · diff · log
   |  ,-.    ,-'  Andrii |  /   t  ta  tn  tk        tmux · attach · new · kill
   |  | (   |    Pavliuk | /    Ctrl+T Ctrl+R Alt+C  fzf: file · history · cd
@@ -322,8 +322,9 @@ bash-completion before `~/.bashrc` runs. The long comment above that block in
 | `Ctrl+Right` / `Alt+F` | accept one word of it |
 | `Esc` (or `Ctrl+G`) | dismiss the suggestion |
 | `UP` / `DOWN` | prefix history search — type `cd `, press UP, walk older matches. Instant, readline-style: no status line, and the recalled line is *not* left selected, so you can keep typing on it |
-| `Tab` | complete; a second `Tab` opens the candidate menu |
-| `F1` | tldr examples for the command you are typing, printed above the line (which stays); `git commit` + `F1` → the `git-commit` page; no tldr page → `man` |
+| `Tab` | complete; the candidates show up right away (a second `Tab` steps into them) |
+| `-` or `--`, then `Tab` | the command's options, each with what it does (taken from its man page) |
+| `F1` | tldr examples for the command you are typing, printed above the line (which stays); `git commit` + `F1` → the `git-commit` page, `sudo apt install` + `F1` → `apt` (sudo, env, time, `VAR=x` … are skipped); no tldr page → `man` |
 | *(in the menu)* type anything | drops the highlighted candidate, inserts your character and narrows the list — keep typing, then `Tab` again for fewer candidates |
 | *(in the menu)* `Tab` / `Shift+Tab` / arrows | move through candidates |
 | *(in the menu)* `Enter` | take the highlighted candidate |
