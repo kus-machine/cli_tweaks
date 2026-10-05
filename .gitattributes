@@ -4,6 +4,7 @@
 *.sh            text eol=lf
 *.bash          text eol=lf
 *.toml          text eol=lf
+*.tmTheme       text eol=lf
 *.zshrc         text eol=lf
 
 # dotfiles / configs without an extension

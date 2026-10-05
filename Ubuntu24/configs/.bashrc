@@ -158,13 +158,24 @@ fi
 #   Alt+C   the tree of the folder under the cursor (eza, 2 levels)
 #   Ctrl+R  the whole command, wrapped -- long ones are cut off in the list
 #   Ctrl+/  inside any of them hides / shows the preview
-# bat's "ansi" theme draws with the terminal's own 16 colours, i.e. Tokyo Night
-# from alacritty.toml; `export BAT_THEME=TwoDark` (Nord, Dracula, ...) in
-# ~/.bashrc.local picks another one for previews and `bat` alike. Without bat
-# or eza the previews fall back to head / ls.
+# bat's colours: "tokyonight_night" (shared/bat/themes, deployed by --configs),
+# the same palette as the terminal but with a colour per kind of token. Pick
+# another for previews and `bat` alike with e.g.
+#     export BAT_THEME=synthwave84          # also shipped with cli_tweaks
+#     export BAT_THEME="Visual Studio Dark+" # built into bat, as is
+#     export BAT_THEME="Monokai Extended Origin"
+# in ~/.bashrc.local (`bat --list-themes` shows them all). Falls back to
+# "ansi" -- the terminal's 16 colours -- when the theme file is missing.
+# Without bat or eza the previews fall back to head / ls.
 __fzf_bat=$(command -v batcat || command -v bat)     # Ubuntu calls it batcat
 if [[ $__fzf_bat ]]; then
-    export BAT_THEME=${BAT_THEME:-ansi}
+    if [[ -z ${BAT_THEME-} ]]; then
+        if [[ -f ${XDG_CONFIG_HOME:-$HOME/.config}/bat/themes/tokyonight_night.tmTheme ]]; then
+            export BAT_THEME=tokyonight_night
+        else
+            export BAT_THEME=ansi
+        fi
+    fi
     __fzf_file="$__fzf_bat --color=always --style=numbers --line-range=:300 {}"
 else
     __fzf_file='head -300 {}'

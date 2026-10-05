@@ -32,7 +32,8 @@ Installs useful command-line tools:
 - tmux
 - eza
 - tree
-- bat (`cat` with syntax colours; also draws the fzf file preview)
+- bat (`cat` with syntax colours; also draws the fzf file preview — theme
+  `tokyonight_night`; switch with `export BAT_THEME=...` in `~/.bashrc.local`)
 - fzf
 - fd
 - ripgrep
@@ -63,6 +64,8 @@ Installs:
 - .bash_aliases
 - .tmux.conf
 - .blerc (ble.sh settings + palette — inert if ble.sh is not installed)
+- bat colour themes (`shared/bat/themes` → `~/.config/bat/themes`, then
+  `bat cache --build`): **tokyonight_night**, the default, and synthwave84
 
 Your original files are captured **once**, on the first install, into
 `~/.local/state/cli_tweaks/pristine/` (plus one timestamped `.bak` beside the

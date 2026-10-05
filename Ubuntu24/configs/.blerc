@@ -363,6 +363,8 @@ _blerc_faces=(
     region_match=bg=#3d59a1              # search hit: tinted, not inverted
     region_target=fg=#1a1b26,bg=#bb9af7  # the one hit you are on
     menu_filter_input=fg=#c0caf5,bg=#283457
+    menu_complete_selected=bg=#283457    # the highlighted Tab-menu item: was
+                                         # reverse video = a solid bright-blue block
     prompt_status_line=fg=#c0caf5,bg=#414868
     overwrite_mode=fg=#1a1b26,bg=#e0af68
     cmdinfo_cd_cdpath=fg=#565f89

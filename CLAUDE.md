@@ -17,7 +17,7 @@ Read these first: [docs/PLAN.md](docs/PLAN.md) (roadmap + status + decisions),
 
 1. **Ubuntu24 is the canonical experience.** When adding a feature, define it in
    the Ubuntu configs + PARITY.md first, then propagate to other platforms.
-2. **Portable configs live in `shared/`** (starship, alacritty). Platform
+2. **Portable configs live in `shared/`** (starship, alacritty, bat themes). Platform
    installers *reference* them; never copy a shared file into a platform folder.
    If you change where a shared file lives, update every installer that reads it
    (currently: `Ubuntu24/scripts/install-{starship,alacritty}.sh`,

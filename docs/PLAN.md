@@ -4,7 +4,7 @@
 Windows 11, and remote SSH targets (Raspberry Pi) — plus a clean, reworked set
 of installers and a good SSH config.
 
-_Last updated: 2026-10-05 (startup banner)._
+_Last updated: 2026-10-05 (zsh trial planned)._
 
 ## Locked decisions
 
@@ -207,6 +207,33 @@ where the bash side was exercised for real. The Windows and macOS edits are
 _SSH config and the Raspberry Pi / remote profile are intentionally **plan-only**
 for now (below) — nothing implemented yet._
 
+### 🧪 To try: zsh instead of bash + ble.sh on Linux (user's call, later)
+ble.sh in daily use (2026-10-05): input lag (it is a line editor written in
+bash), `git checkout -⇥` breaks (the space before `-` vanishes, candidates
+do not fit — a clash with git's bash-completion script), no descriptions for
+subcommands or git sub-options (option descriptions from man pages DO work:
+`grep --co⇥`), and leftover default colours ("acid blue"). Candidate fix:
+**zsh** + `zsh-autosuggestions` + `zsh-syntax-highlighting` (both apt) +
+**fzf-tab** (git clone): zsh's own completion system has descriptions for
+git / systemctl / apt …, it is C-fast, and macOS already runs zsh — so one
+shared zshrc could serve Linux and macOS.
+- Trial first, without touching bash: `apt install zsh zsh-autosuggestions
+  zsh-syntax-highlighting`, a trial config in its own `ZDOTDIR`, start `zsh`
+  in one window, `exit` to leave.
+- If adopted: shared zshrc (Linux + macOS), port banner / `keys` / aliases /
+  fzf previews, tmux `default-shell`, `chsh`, manifest + uninstall; ble.sh
+  becomes optional.
+- Alternatives considered: plain bash without ble.sh (fastest, but no grey
+  suggestions), fish (best out of the box, different syntax), nushell (new
+  language).
+
+### 🗄️ Shelved: one identical shell on Windows too
+Decided 2026-10-05: too complex for now — Windows stays native pwsh. Options
+on record: zsh on Linux/macOS + pwsh on Windows with **carapace** for the same
+Tab descriptions in both; **WSL2** (literally the same zshrc; reverses locked
+decision 1); **WezTerm** on all three for identical tabs/panes without tmux;
+nushell / pwsh everywhere (rejected: new language / foreign on Unix).
+
 ### 📝 Next up (priority order)
 0. **Validate the 2026-10-05 Windows changes on Windows**: parse both scripts
    under 5.1 and pwsh 7, `gl` → git log, Alt+C, `uninstall.ps1 -Cosmetic`
@@ -241,7 +268,12 @@ for now (below) — nothing implemented yet._
 6. **Consider `shared/tmux.conf`** (merge the two near-identical copies).
 
 ### 💡 Backlog / nice-to-have
-- `bat` theme aligned with Tokyo Night (matches alacritty).
+- `bat` theme aligned with Tokyo Night (matches alacritty). Done 2026-10-05:
+  `shared/bat/themes/tokyonight_night.tmTheme` (default) + `synthwave84`,
+  deployed by `--configs`; `ansi` was rejected as too few colours.
+- ~~Tokyo Night colours for fzf / eza~~ — tried 2026-10-05 (selection #283457,
+  grey metadata): user found it too dark, prefers the defaults. Don't re-propose.
+  btop's built-in `tokyo-night` theme is left to the user's own btop menu.
 - Windows Terminal profile as an alternative GUI (decision was Alacritty, but
   WT integrates well — optional).
 - A top-level cross-platform `bootstrap` doc / one-liner per OS.

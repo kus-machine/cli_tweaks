@@ -97,6 +97,11 @@ info "loaded manifest: $(jq -r '"\(.files|length) files, \(.packages|length) pac
 # --- 1. restore config files ----------------------------------------------
 
 info "restoring configuration files"
+# Remember whether bat themes are among them: bat needs its cache refreshed
+# once they are gone, or it keeps listing them.
+bat_themes_touched=0
+jq -e '.files[] | select(.id | test("/bat/themes/"))' "$MANIFEST" >/dev/null 2>&1 &&
+    bat_themes_touched=1
 while IFS=$'\t' read -r path pristine; do
     [[ -n "$path" ]] || continue
     if [[ "$pristine" == "null" || -z "$pristine" ]]; then
@@ -112,6 +117,14 @@ while IFS=$'\t' read -r path pristine; do
         warn "pristine copy missing for $path (expected $pristine) - leaving as is"
     fi
 done < <(jq -r '.files[] | [.id, (.pristine // "null")] | @tsv' "$MANIFEST")
+
+if [[ $bat_themes_touched -eq 1 ]]; then
+    if [[ $DRY_RUN -eq 1 ]]; then
+        printf '\033[35m  would:\033[0m %s\n' "refresh bat's theme cache"
+    else
+        bat_refresh_theme_cache
+    fi
+fi
 
 if [[ "$MODE" == "configs" ]]; then
     echo

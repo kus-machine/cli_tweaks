@@ -12,7 +12,8 @@ cli_tweaks/
 │   └── ARCHITECTURE.md      # this file
 ├── shared/                  # portable, platform-agnostic configs (single source)
 │   ├── alacritty.toml       # terminal — used by Linux/macOS/Windows
-│   └── starship.toml        # prompt   — used by every shell
+│   ├── starship.toml        # prompt   — used by every shell
+│   └── bat/themes/          # bat colour themes (tokyonight_night = default)
 ├── Ubuntu24/                # Linux — the CANONICAL experience
 │   ├── install.sh           # flag dispatcher (--packages --fonts ... --all)
 │   ├── uninstall.sh         # manifest-driven revert (--configs / --full)

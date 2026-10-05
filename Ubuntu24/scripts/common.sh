@@ -150,6 +150,33 @@ deploy_file() {
     ok "$dst"
 }
 
+# --- bat -------------------------------------------------------------------
+
+# bat_cmd -- prints the bat binary; Ubuntu's package names it `batcat`.
+bat_cmd() {
+    command -v batcat 2>/dev/null || command -v bat 2>/dev/null
+}
+
+# bat_refresh_theme_cache
+#
+# bat only sees the themes in ~/.config/bat/themes after `bat cache --build`.
+# When none is left there (after uninstall), clear the cache instead, so bat
+# is back on its built-in themes exactly as before.
+bat_refresh_theme_cache() {
+    local bat dir
+    if ! bat="$(bat_cmd)"; then
+        warn "bat is not installed - its theme cache was not rebuilt"
+        warn "  (./install.sh --packages, then --configs again)"
+        return 0
+    fi
+    dir="$("$bat" --config-dir)/themes"
+    if compgen -G "$dir/*.tmTheme" >/dev/null; then
+        "$bat" cache --build >/dev/null && ok "bat theme cache rebuilt"
+    else
+        "$bat" cache --clear >/dev/null && ok "bat theme cache cleared"
+    fi
+}
+
 # --- packages --------------------------------------------------------------
 
 pkg_installed() {
