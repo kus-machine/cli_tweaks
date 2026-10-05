@@ -158,6 +158,23 @@ alert() {
 }
 
 
+# cli_tweaks_f1 -- what F1 runs (bound in ~/.blerc, readline fallback in
+# ~/.bashrc): tldr for the command on the line being typed, tried as
+# "cmd-subcommand" first (git commit -> git-commit), then "cmd", then man.
+# $READLINE_LINE is the line; it is left untouched.
+cli_tweaks_f1() {
+    local -a w
+    read -ra w <<< "${READLINE_LINE-}"
+    local cmd=${w[0]-} sub=${w[1]-}
+    [[ $cmd ]] || return 0      # empty line: nothing to explain
+    if command -v tldr >/dev/null 2>&1; then
+        if [[ $sub && $sub != -* ]] && tldr "$cmd-$sub" 2>/dev/null; then return; fi
+        tldr "$cmd" 2>/dev/null && return
+    fi
+    man "$cmd" 2>/dev/null || echo "F1: no tldr page and no man page for '$cmd'"
+}
+
+
 # ===========================================================================
 # Startup banner + `keys` cheatsheet
 # ===========================================================================
@@ -191,16 +208,44 @@ __cli_tweaks_pad() {
     (( n > 0 )) && printf '%*s' "$n" ''
 }
 
+# __cli_tweaks_colour_cmd <text> <cmd> <arg> <key> <sep>
+# Prints the banner's command column with each word in its own colour, picked
+# by what the word looks like -- so a new banner row needs no markup:
+#   Ctrl+… Alt+… Shift+… F1 ← ↑ → ↓   a key         -> <key>
+#   DIR TEXT CMD (all capitals)        an argument   -> <arg>
+#   ·                                  a separator   -> <sep>
+#   anything else                      a command     -> <cmd>
+__cli_tweaks_colour_cmd() {
+    local rest=$1 c_cmd=$2 c_arg=$3 c_key=$4 c_sep=$5 reset=$'\e[0m'
+    local ws tok col
+    while [[ $rest =~ ^([[:space:]]*)([^[:space:]]+)(.*)$ ]]; do
+        ws=${BASH_REMATCH[1]} tok=${BASH_REMATCH[2]} rest=${BASH_REMATCH[3]}
+        if [[ $tok == '·' ]]; then
+            col=$c_sep
+        elif [[ $tok =~ ^(Ctrl|Alt|Shift)\+ || $tok =~ ^F[0-9]+$ || $tok == [←↑→↓] ]]; then
+            col=$c_key
+        elif [[ $tok =~ ^[[:upper:]]+$ ]]; then
+            col=$c_arg
+        else
+            col=$c_cmd
+        fi
+        printf '%s%s%s%s' "$ws" "$col" "$tok" "$reset"
+    done
+}
+
 cli_tweaks_banner() {
     local cols
     cols=$(tput cols 2>/dev/null) || cols=80
 
-    local cat_c title_c cmd_c desc_c name_c reset=$'\e[0m'
-    cat_c=$(__cli_tweaks_fg bb9af7 141)     # magenta
-    title_c=$(__cli_tweaks_fg 7aa2f7 111)   # blue
-    cmd_c=$(__cli_tweaks_fg 73daca 79)      # teal = your functions in ble.sh
-    desc_c=$(__cli_tweaks_fg a9b1d6 146)    # soft foreground
-    name_c=$(__cli_tweaks_fg e0af68 179)    # yellow
+    local cat_c title_c cmd_c arg_c key_c sep_c desc_c name_c reset=$'\e[0m'
+    cat_c=$(__cli_tweaks_fg bb9af7 141)     # magenta  the cat
+    title_c=$(__cli_tweaks_fg ff9e64 215)   # orange   the title line
+    cmd_c=$(__cli_tweaks_fg 7aa2f7 111)     # blue     commands (as ble.sh shows them)
+    arg_c=$(__cli_tweaks_fg 565f89 60)      # grey     ARGS you fill in
+    key_c=$(__cli_tweaks_fg bb9af7 141)     # magenta  keys to press
+    sep_c=$(__cli_tweaks_fg 565f89 60)      # grey     the · separators
+    desc_c=$(__cli_tweaks_fg a9b1d6 146)    # soft fg  what it does
+    name_c=$(__cli_tweaks_fg e0af68 179)    # yellow   the name, and the keys row
 
     # Too narrow for the cat (it needs 79 columns): one line, or nothing.
     if (( cols < 40 )); then
@@ -229,24 +274,27 @@ cli_tweaks_banner() {
   `--'   `--'
 CAT
 
-    # Right-hand column: rows 3..11 are "command<TAB>what it does".
+    # Right-hand column: rows 3..11 are "command<TAB>what it does"; row 12,
+    # below the cat, is `keys` -- in the name's yellow, so it reads as "and
+    # here is where the full instructions continue" rather than one more item.
     local -a rows=(
         ''
         ''
         $'l  la  lss\tlist · +sizes · by size'
-        $'tree3 dir\ttree, 3 levels (tree1…9)'
+        $'tree3 DIR\ttree, 3 levels (tree1…9)'
         $'fin TEXT\tfind by name, from here'
         $'z DIR\tjump to a frequent folder'
         $'gs  gd  gl\tgit status · diff · log'
         $'t  ta  tn  tk\ttmux · attach · new · kill'
         $'Ctrl+T Ctrl+R Alt+C\tfzf: file · history · cd'
         $'↑  →  Alt+W\thistory · accept · copy'
+        $'F1  ·  tldr CMD\texamples for a command'
         $'keys\tall commands & hotkeys'
     )
 
     local i line cmd desc
-    for i in "${!cat[@]}"; do
-        line=${cat[i]}
+    for i in "${!rows[@]}"; do
+        line=${cat[i]-}
         # Colour the name inside the box separately from the cat outline.
         line=${line//Andrii/${name_c}Andrii${cat_c}}
         line=${line//Pavliuk/${name_c}Pavliuk${cat_c}}
@@ -255,11 +303,17 @@ CAT
             __cli_tweaks_pad "${cat[i]}" 31
             printf '%scli_tweaks · github.com/kus-machine/cli_tweaks%s' "$title_c" "$reset"
         elif [[ ${rows[i]-} ]]; then
-            __cli_tweaks_pad "${cat[i]}" 31
+            __cli_tweaks_pad "${cat[i]-}" 31
             cmd=${rows[i]%%$'\t'*} desc=${rows[i]#*$'\t'}
-            printf '%s%s%s' "$cmd_c" "$cmd" "$reset"
-            __cli_tweaks_pad "$cmd" 21
-            printf '%s%s%s' "$desc_c" "$desc" "$reset"
+            if (( i == ${#rows[@]} - 1 )); then       # keys: one colour, all yellow
+                printf '%s%s%s' "$name_c" "$cmd" "$reset"
+                __cli_tweaks_pad "$cmd" 21
+                printf '%s%s%s' "$name_c" "$desc" "$reset"
+            else
+                __cli_tweaks_colour_cmd "$cmd" "$cmd_c" "$arg_c" "$key_c" "$sep_c"
+                __cli_tweaks_pad "$cmd" 21
+                printf '%s%s%s' "$desc_c" "$desc" "$reset"
+            fi
         fi
         printf '\n'
     done
@@ -293,9 +347,10 @@ keys() {
 
 # COMMANDS
 l  la  lss	list files · + folder sizes · biggest last
-tree [N] [dir]	tree, N levels deep · tree1 … tree9 = tree N
+tree [N] [DIR]	tree, N levels deep · tree1 … tree9 = tree N
 fin TEXT	find files by name, from the current folder
 bat FILE	show a file with syntax colours and line numbers
+tldr CMD	short ready-made examples instead of man (tldr tar)
 z PART  ·  zi PART	jump to a visited folder by part of its name
 	learns as you go: cd into it once, then  z cli
 	works anywhere · zi = pick from a list · z - = back
@@ -322,6 +377,8 @@ Ctrl+Backspace	delete the word on the left (Alt+Backspace too)
 Ctrl+Delete	delete the word on the right
 Ctrl+Y	paste what you deleted last
 Ctrl+← →	jump one word
+F1	examples for the command you are typing (tldr)
+	git commit + F1 -> git-commit · no page? opens man
 
 # TMUX  (press Ctrl+B, release, then the key)
 Alt+1 … Alt+9	go to tab N (or click it in the top bar)

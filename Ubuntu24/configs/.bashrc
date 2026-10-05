@@ -264,6 +264,10 @@ if [[ ! ${BLE_VERSION-} ]]; then
     # no default binding in readline at all, hence the \e[3;5~ line.
     bind '"\C-h": backward-kill-word'
     bind '"\e[3;5~": kill-word'
+
+    # F1: tldr examples for the command being typed (man as fallback); ble.sh
+    # binds the same function in ~/.blerc.
+    bind -x '"\eOP": cli_tweaks_f1'
 fi
 
 

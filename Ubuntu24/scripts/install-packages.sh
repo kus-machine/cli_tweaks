@@ -27,7 +27,23 @@ apt_install_tracked \
     fd-find \
     ripgrep \
     zoxide \
+    tealdeer \
     btop
+
+# tldr pages: tealdeer (the `tldr` command) ships without them and only says
+# "run tldr --update" until they are downloaded (~30 MB, English only), so
+# fetch them once now -- as you, into ~/.cache/tealdeer. A cache dir we create
+# is ours to delete on uninstall --full; refresh it now and then with
+# `tldr --update`.
+TLDR_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/tealdeer"
+if command -v tldr >/dev/null 2>&1 && [[ ! -d "$TLDR_CACHE" ]]; then
+    info "downloading tldr pages"
+    if tldr --update >/dev/null; then
+        record_dir "$TLDR_CACHE" false
+    else
+        warn "tldr --update failed (offline?) - run it later by hand"
+    fi
+fi
 
 echo
 ok "packages installed"

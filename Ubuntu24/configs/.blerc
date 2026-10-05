@@ -150,6 +150,20 @@ blehook/eval-after-load keymap_emacs blerc/emacs-load-hook
 
 
 # ---------------------------------------------------------------------------
+# F1  --  examples for the command you are typing (tldr), man as a fallback
+# ---------------------------------------------------------------------------
+# Prints the tldr page above the prompt and leaves the line as it was:
+# "git commit -m" + F1 shows git-commit, "tar -x" + F1 shows tar. With no
+# tldr page (or no tldr) it opens `man`, which is what ble.sh's own F1
+# (command-help) did. The function lives in ~/.bash_aliases (cli_tweaks_f1)
+# so the readline fallback in ~/.bashrc can use it too.
+function blerc/f1-load-hook {
+    ble-bind -m emacs -x f1 cli_tweaks_f1
+}
+blehook/eval-after-load keymap_emacs blerc/f1-load-hook
+
+
+# ---------------------------------------------------------------------------
 # Paste  --  drop ONE trailing newline
 # ---------------------------------------------------------------------------
 # A triple-click (a whole line) and many other copies end in "\n". Pasted

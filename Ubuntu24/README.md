@@ -38,6 +38,7 @@ Installs useful command-line tools:
 - fd
 - ripgrep
 - zoxide (`z` / `zi` — jump to frequent folders)
+- tealdeer (`tldr` — short ready-made examples; pages downloaded once, ~30 MB)
 - btop
 
 ```bash
@@ -257,6 +258,7 @@ still has your real originals to fall back on. Delete
 | `CMD; alert` | desktop notification when CMD finishes: "done" or "failed (exit N)" plus the command (needs a desktop session). Try `sleep 5; alert` and switch to another window. Ubuntu's stock alias used `--urgency=low`, which GNOME files under the clock without a pop-up, so it is a function with normal urgency here |
 | `t`, `tls`, `ta`, `tn` | tmux, list, attach to the first session, new session |
 | `tk` | inside tmux: kill this session; outside: list all sessions and ask before killing the server |
+| `tldr CMD` | a few ready-made examples instead of the man page (`tldr tar`, `tldr git-commit`) |
 | `keys` | the full cheatsheet: every command above plus all hotkeys (command line, tmux, terminal) |
 
 ### Startup banner
@@ -268,16 +270,20 @@ easiest to forget, with `keys` for the rest:
   ,-.       _,---._ __  / \    cli_tweaks · github.com/kus-machine/cli_tweaks
  /  )    .-'       `./ /   \
 (  (   ,'            `/    /|  l  la  lss           list · +sizes · by size
- \  `-"             \'\   / |  tree3 dir            tree, 3 levels (tree1…9)
+ \  `-"             \'\   / |  tree3 DIR            tree, 3 levels (tree1…9)
   `.              ,  \ \ /  |  fin TEXT             find by name, from here
    /`.          ,'-`----Y   |  z DIR                jump to a frequent folder
   (            ;        |   '  gs  gd  gl           git status · diff · log
   |  ,-.    ,-'  Andrii |  /   t  ta  tn  tk        tmux · attach · new · kill
   |  | (   |    Pavliuk | /    Ctrl+T Ctrl+R Alt+C  fzf: file · history · cd
   )  |  \  `.___________|/     ↑  →  Alt+W          history · accept · copy
-  `--'   `--'                  keys                 all commands & hotkeys
+  `--'   `--'                  F1  ·  tldr CMD      examples for a command
+                               keys                 all commands & hotkeys
 ```
 
+- Colours tell the parts apart: commands blue, ARGUMENTS you fill in pale
+  grey (always in capitals), keys to press magenta, the title orange. The
+  last row, `keys`, is yellow: it is where the full instructions continue.
 - It needs 79 columns. From 40 to 78 columns you get one line
   (`=^.^= cli_tweaks · type keys for every hotkey`); below 40, nothing.
 - It shows once per terminal: in tmux only in the first pane of a new session
@@ -317,6 +323,7 @@ bash-completion before `~/.bashrc` runs. The long comment above that block in
 | `Esc` (or `Ctrl+G`) | dismiss the suggestion |
 | `UP` / `DOWN` | prefix history search — type `cd `, press UP, walk older matches. Instant, readline-style: no status line, and the recalled line is *not* left selected, so you can keep typing on it |
 | `Tab` | complete; a second `Tab` opens the candidate menu |
+| `F1` | tldr examples for the command you are typing, printed above the line (which stays); `git commit` + `F1` → the `git-commit` page; no tldr page → `man` |
 | *(in the menu)* type anything | drops the highlighted candidate, inserts your character and narrows the list — keep typing, then `Tab` again for fewer candidates |
 | *(in the menu)* `Tab` / `Shift+Tab` / arrows | move through candidates |
 | *(in the menu)* `Enter` | take the highlighted candidate |
