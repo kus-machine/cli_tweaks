@@ -11,8 +11,9 @@ cli_tweaks/
 │   ├── PARITY.md            # canonical feature matrix across platforms
 │   └── ARCHITECTURE.md      # this file
 ├── shared/                  # portable, platform-agnostic configs (single source)
-│   ├── alacritty.toml       # terminal — used by Linux/macOS/Windows
+│   ├── alacritty.toml       # terminal — used by Linux/macOS
 │   ├── starship.toml        # prompt   — used by every shell
+│   ├── lesskey              # less's keys on the Ukrainian layout (Windows so far)
 │   └── bat/themes/          # bat colour themes (tokyonight_night = default)
 ├── Ubuntu24/                # Linux — the CANONICAL experience
 │   ├── install.sh           # flag dispatcher (--packages --fonts ... --all)
@@ -22,10 +23,11 @@ cli_tweaks/
 ├── macos/                   # macOS (zsh) — being brought up to parity
 │   ├── .zshrc, .tmux.conf
 │   └── install.sh           # 📝 planned
-└── windows/                 # Windows 11 — native PowerShell 7
+└── windows/                 # Windows 11 — native PowerShell 7 + WezTerm
     ├── install.ps1          # winget-based, per-user, flag/switch model
     ├── uninstall.ps1        # manifest-driven revert (-Cosmetic / -Full)
-    ├── alacritty-windows.toml  # pwsh-shell overlay appended to shared/alacritty.toml
+    ├── wezterm.lua          # terminal: tabs + panes (replaces Alacritty + tmux here)
+    ├── keys.txt             # the `keys` / Ctrl+B ? cheatsheet (Ubuntu: in .bash_aliases)
     └── Microsoft.PowerShell_profile.ps1
 ```
 
@@ -46,8 +48,9 @@ are tracked in [PLAN.md](PLAN.md), not present in the tree yet.
 
 3. **Installers are componentised and idempotent-ish.** Each platform exposes
    the same component switches (`packages`, `fonts`, `starship`, `configs`,
-   `alacritty`; Windows adds `shell` for pwsh7, Ubuntu adds `blesh` for the
-   inline autosuggestions bash lacks natively). A user file is captured **once**
+   plus the terminal: `alacritty` on Ubuntu, `wezterm` on Windows; Windows adds
+   `shell` for pwsh7, Ubuntu adds `blesh` for the inline autosuggestions bash
+   lacks natively). A user file is captured **once**
    before it is first overwritten (Ubuntu: `~/.local/state/cli_tweaks/pristine/`;
    Windows: `*.bak.<timestamp>`), and everything an install does goes into a
    manifest that the uninstaller replays in reverse. Anything that was already
@@ -62,7 +65,10 @@ are tracked in [PLAN.md](PLAN.md), not present in the tree yet.
 
 ## Platform notes
 
-- **Windows = native PowerShell 7 only** (decision: no WSL, no tmux/bash). The
-  machine currently has only Windows PowerShell 5.1, so `install.ps1 -Shell`
-  installs pwsh7 first; the profile lands at `~/Documents/PowerShell/`.
-- **Terminal = Alacritty everywhere** for one shared TOML.
+- **Windows = native PowerShell 7 only** (decision: no WSL, no tmux/bash).
+  `install.ps1 -Shell` installs pwsh7 if missing; the profile lands at
+  `~/Documents/PowerShell/profile.ps1`, its data files (`keys.txt`, `lesskey`)
+  in `~/.config/cli_tweaks/`.
+- **Terminal: Alacritty on Linux/macOS, WezTerm on Windows** (changed
+  2026-10-12, see PLAN.md decision 2). Windows has no tmux, and Alacritty has
+  no tabs/panes of its own; WezTerm brings both, with the tmux keys.

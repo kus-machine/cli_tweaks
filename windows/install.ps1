@@ -1,9 +1,10 @@
 <#
 .SYNOPSIS
-    cli_tweaks - Windows 11 installer (native PowerShell 7 experience).
+    cli_tweaks - Windows 11 installer (native PowerShell 7 + WezTerm).
 .DESCRIPTION
     Mirrors the Ubuntu24 install.sh component model, using winget. Everything is
-    per-user (no admin needed for tools/fonts). Existing files are backed up.
+    per-user where winget allows it (no admin needed for tools/fonts). Existing
+    files are backed up the first time they are replaced.
 
     Writes an install manifest to %LOCALAPPDATA%\cli_tweaks\install-manifest.json
     recording exactly what it installed / changed, so uninstall.ps1 can revert
@@ -15,21 +16,23 @@
 .EXAMPLE
     ./install.ps1 -All
 .EXAMPLE
-    ./install.ps1 -Shell -Packages -Starship -Configs -Alacritty
+    ./install.ps1 -Shell -Packages -Starship -Configs -WezTerm
 .EXAMPLE
     ./install.ps1 -All -SetWindowsDefaultTerminalApp
 .NOTES
-    STATUS: tested on Windows 11 / Windows PowerShell 5.1 / pwsh 7.6.
+    STATUS: the 2026-10-12 rewrite (WezTerm, tealdeer, lazy PSFzf, record-before-
+    act) was built from a hand-tested trial setup but this script itself has NOT
+    been run end-to-end yet - see docs/REMINDERS.md.
 #>
 [CmdletBinding()]
 param(
     [switch]$All,
     [switch]$Shell,                        # install PowerShell 7 (pwsh)
-    [switch]$Packages,                     # fzf eza zoxide fd ripgrep bat btop
+    [switch]$Packages,                     # fzf fd eza zoxide ripgrep bat btop tealdeer + PSFzf
     [switch]$Fonts,                        # FiraCode Nerd Font (per-user)
     [switch]$Starship,                     # starship + shared starship.toml
-    [switch]$Configs,                      # deploy the PowerShell profile
-    [switch]$Alacritty,                    # alacritty + shared config (+ pwsh shell)
+    [switch]$Configs,                      # pwsh profile + keys.txt + lesskey + bat themes
+    [switch]$WezTerm,                      # WezTerm (nightly) + windows/wezterm.lua
     [switch]$SetDefaultTerminal,           # Windows Terminal default profile -> pwsh7
     [switch]$SetWindowsDefaultTerminalApp  # opt-in: Windows "Default terminal app" -> WT
 )
@@ -46,13 +49,17 @@ $WtSettings   = Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_
 # Windows Terminal delegation GUIDs (for "Default terminal application").
 $WtDelegationConsole  = '{2EACA947-7F5F-4CFA-BA87-8F7FBEEFBE69}'
 $WtDelegationTerminal = '{E12CFF52-A866-4C77-9A90-F570A7AA2C6B}'
+# Where the profile's data files live (keys.txt, lesskey).
+$CliTweaksHome = Join-Path $HOME '.config\cli_tweaks'
 
 $Packages_ = New-Object System.Collections.ArrayList
 $Files_    = New-Object System.Collections.ArrayList
 $Modules_  = New-Object System.Collections.ArrayList
 $Fonts_    = New-Object System.Collections.ArrayList
+$Dirs_     = New-Object System.Collections.ArrayList   # {path, preexisting}
 $Wt_       = $null    # {path, backup, prevDefaultProfile, newDefaultProfile}
 $WinTerm_  = $null    # {prevConsole, prevTerminal}
+$BatCache_ = $false   # we ran `bat cache --build` (uninstall clears it)
 
 # Seed from an existing manifest so re-runs accumulate and we never lose the
 # ORIGINAL 'prev' values recorded on the first run.
@@ -63,8 +70,10 @@ if (Test-Path $ManifestPath) {
         foreach ($x in @($old.files))    { if ($x) { [void]$Files_.Add($x) } }
         foreach ($x in @($old.modules))  { if ($x) { [void]$Modules_.Add($x) } }
         foreach ($x in @($old.fonts))    { if ($x) { [void]$Fonts_.Add($x) } }
+        foreach ($x in @($old.dirs))     { if ($x) { [void]$Dirs_.Add($x) } }
         if ($old.wt)                 { $Wt_ = $old.wt }
         if ($old.windowsTerminalApp) { $WinTerm_ = $old.windowsTerminalApp }
+        if ($old.batCache)           { $BatCache_ = $true }
     } catch { Write-Host "  (could not read existing manifest; starting fresh)" -ForegroundColor DarkYellow }
 }
 
@@ -94,6 +103,9 @@ function Backup-Copy([string]$Path) {
     return $null
 }
 
+# Every Register-* keeps the FIRST record (CLAUDE.md rule 5a): on a re-run,
+# what WE installed last time is present too, and must not be relabelled
+# "preexisting" - uninstall would then never remove it.
 function Register-Package([string]$Id, [bool]$Pre) {
     if (-not ($Packages_ | Where-Object { $_.id -eq $Id })) {
         [void]$Packages_.Add([pscustomobject]@{ id = $Id; preexisting = $Pre })
@@ -105,8 +117,7 @@ function Register-File([string]$Path, $Backup) {
     }
 }
 # $Pre = the module dir already existed before we touched it. uninstall.ps1
-# never removes a module flagged preexisting. Like every Register-*, the FIRST
-# record wins, so a re-run cannot relabel a module we saved as pre-existing.
+# never removes a module flagged preexisting.
 function Register-Module([string]$Name, [string]$Path, [bool]$Pre) {
     if (-not ($Modules_ | Where-Object { $_.name -eq $Name })) {
         [void]$Modules_.Add([pscustomobject]@{ name = $Name; path = $Path; preexisting = $Pre })
@@ -118,6 +129,13 @@ function Register-Module([string]$Name, [string]$Path, [bool]$Pre) {
 function Register-Font([string]$File, [string]$RegValue, [bool]$Pre) {
     if (-not ($Fonts_ | Where-Object { $_.file -eq $File })) {
         [void]$Fonts_.Add([pscustomobject]@{ file = $File; regValue = $RegValue; preexisting = $Pre })
+    }
+}
+# A directory a tool creates for its own data (e.g. WezTerm's logs). Recorded
+# BEFORE the tool first runs, so we know whether it existed already.
+function Register-Dir([string]$Path) {
+    if (-not ($Dirs_ | Where-Object { $_.path -eq $Path })) {
+        [void]$Dirs_.Add([pscustomobject]@{ path = $Path; preexisting = (Test-Path $Path) })
     }
 }
 function Test-FileRegistered([string]$Path) {
@@ -134,16 +152,48 @@ function Get-PwshPath {
     return $null
 }
 
+# A tool winget installed a moment ago is usually NOT on this session's PATH
+# yet. Look for it where winget puts it (same globs as the profile's PATH
+# self-heal).
+function Find-Tool([string]$Name, [string[]]$Globs) {
+    $c = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($c) { return $c.Source }
+    foreach ($g in $Globs) {
+        $f = Get-Item $g -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($f) { return $f.FullName }
+    }
+    return $null
+}
+
+# Run a native tool, ignore what it prints, report success. (Under
+# ErrorActionPreference=Stop, Windows PowerShell 5.1 turns a native command's
+# stderr into a terminating error - hence the local Continue.)
+function Invoke-Quiet([string]$Exe, [string[]]$ArgList) {
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $Exe @ArgList 2>&1 | Out-Null; return ($LASTEXITCODE -eq 0) }
+    catch { return $false }
+    finally { $ErrorActionPreference = $old }
+}
+
 function Test-WingetInstalled([string]$Id) {
     $out = (winget list --id $Id --exact --accept-source-agreements 2>$null | Out-String)
     return ($out -match [regex]::Escape($Id))
 }
 
+# Record first, then install (rule 5a): if the install dies halfway, the
+# manifest already says the package is ours. winget's exit code is not
+# trusted on its own (it is non-zero for "already installed, no upgrade"), so
+# a failure is judged by whether the package is listed afterwards.
 function Winget-Install([string]$Id) {
     $pre = Test-WingetInstalled $Id
+    Register-Package $Id $pre
     Write-Host ("  winget install {0}{1}" -f $Id, $(if ($pre) { '  (already present - will not be removed on uninstall)' } else { '' })) -ForegroundColor Cyan
     winget install --id $Id --exact --accept-source-agreements --accept-package-agreements --silent
-    Register-Package $Id $pre
+    $rc = $LASTEXITCODE
+    if (-not $pre -and -not (Test-WingetInstalled $Id)) {
+        Write-Host "  WARNING: winget install $Id failed (exit $rc) - re-run this component later." -ForegroundColor Red
+    }
 }
 
 # Capture the original ONCE (same rule as deploy_file on Ubuntu): if the
@@ -173,7 +223,7 @@ function Get-WtPwshProfileGuid($settings) {
 function Save-Manifest {
     New-Item -ItemType Directory -Force -Path $ManifestDir | Out-Null
     $m = [pscustomobject]@{
-        version             = 1
+        version             = 2
         updated             = (Get-Date -Format o)
         repoRoot            = $RepoRoot
         fontRegKey          = $FontRegKey
@@ -181,6 +231,8 @@ function Save-Manifest {
         files               = @($Files_)
         modules             = @($Modules_)
         fonts               = @($Fonts_)
+        dirs                = @($Dirs_)
+        batCache            = $BatCache_
         wt                  = $Wt_
         windowsTerminalApp  = $WinTerm_
     }
@@ -188,10 +240,12 @@ function Save-Manifest {
     Write-Host "  manifest -> $ManifestPath" -ForegroundColor DarkGray
 }
 
-if (-not ($All -or $Shell -or $Packages -or $Fonts -or $Starship -or $Configs -or $Alacritty -or $SetDefaultTerminal -or $SetWindowsDefaultTerminalApp)) {
+if (-not ($All -or $Shell -or $Packages -or $Fonts -or $Starship -or $Configs -or $WezTerm -or $SetDefaultTerminal -or $SetWindowsDefaultTerminalApp)) {
     Get-Help $PSCommandPath -Detailed
     exit 1
 }
+
+$PkgGlobs = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages"
 
 # Everything below runs inside try/finally so the manifest is written even
 # when a component throws ($ErrorActionPreference = Stop): files already
@@ -214,35 +268,44 @@ try {
             'eza-community.eza',       # ls replacement w/ icons
             'ajeetdsouza.zoxide',      # smarter cd (z)
             'BurntSushi.ripgrep.MSVC', # rg
-            'sharkdp.bat',             # bat
-            'aristocratos.btop4win'    # btop (command name on Windows is btop4win)
+            'sharkdp.bat',             # bat (+ fzf previews)
+            'aristocratos.btop4win',   # btop (command name on Windows is btop4win)
+            'dbrgn.tealdeer'           # tldr (+ F1 in the profile)
         )
         foreach ($id in $ids) { Winget-Install $id }
 
-        # PSFzf must land in pwsh7's module scope (Documents\PowerShell\Modules), NOT
-        # 5.1's. Save it straight there. (Piping an inline -Command into pwsh from
-        # 5.1 mangles quotes, so we only ask pwsh for its module path.)
-        if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
-            Install-PackageProvider -Name NuGet -Scope CurrentUser -Force | Out-Null
+        # tldr pages: tealdeer ships without them. Best-effort - a firewall that
+        # blocks tldr.exe shows up as "os error 10013"; `tldr --update` later.
+        $tldr = Find-Tool 'tldr' @("$env:LOCALAPPDATA\Microsoft\WinGet\Links\tldr.exe")
+        if ($tldr) {
+            if (Invoke-Quiet $tldr @('--update')) { Write-Host "  tldr pages downloaded." -ForegroundColor Green }
+            else { Write-Host "  tldr --update failed (network/firewall?) - run it later." -ForegroundColor DarkYellow }
         }
-        if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
-            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-        }
+
+        # PSFzf (fzf keys for PSReadLine) must land in pwsh7's module scope
+        # (Documents\PowerShell\Modules), NOT 5.1's. pwsh 7.4+ saves it with
+        # Save-PSResource -TrustRepository, which trusts PSGallery for this one
+        # call only - the old installer flipped PSGallery to Trusted for good.
+        # The command goes in as -EncodedCommand: piping an inline -Command from
+        # 5.1 into pwsh mangles quotes. posh-git is no longer installed: it was
+        # the slowest part of the old 5 s start and is not used by the profile.
         $pwshPath = Get-PwshPath
         if ($pwshPath) {
             $pwshProfile = & $pwshPath -NoProfile -Command '$PROFILE.CurrentUserAllHosts'
-            $modDir = Join-Path (Split-Path $pwshProfile) 'Modules'
-            New-Item -ItemType Directory -Force -Path $modDir | Out-Null
-            # PSFzf = fzf keybindings; posh-git = git tab completion.
-            foreach ($mod in @('PSFzf', 'posh-git')) {
-                $modPath = Join-Path $modDir $mod
-                $modPre  = Test-Path $modPath
-                Register-Module $mod $modPath $modPre
-                if ($modPre) {
-                    Write-Host "  $mod already present in pwsh7 scope (will not be removed on uninstall)." -ForegroundColor DarkGray
-                } else {
-                    Write-Host "  $mod module -> $modDir" -ForegroundColor Cyan
-                    Save-Module -Name $mod -Path $modDir -Force
+            $modDir  = Join-Path (Split-Path $pwshProfile) 'Modules'
+            $modPath = Join-Path $modDir 'PSFzf'
+            $modPre  = Test-Path $modPath
+            Register-Module 'PSFzf' $modPath $modPre
+            if ($modPre) {
+                Write-Host "  PSFzf already present in pwsh7 scope (will not be removed on uninstall)." -ForegroundColor DarkGray
+            } else {
+                Write-Host "  PSFzf module -> $modDir" -ForegroundColor Cyan
+                New-Item -ItemType Directory -Force -Path $modDir | Out-Null
+                $cmd = "Save-PSResource -Name PSFzf -Repository PSGallery -Path '$modDir' -TrustRepository -ErrorAction Stop"
+                $enc = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
+                $ok  = Invoke-Quiet $pwshPath @('-NoProfile', '-NonInteractive', '-EncodedCommand', $enc)
+                if (-not $ok -or -not (Test-Path $modPath)) {
+                    Write-Host "  WARNING: PSFzf could not be saved (network?) - re-run -Packages later." -ForegroundColor Red
                 }
             }
         } else {
@@ -257,27 +320,38 @@ try {
         Copy-Config (Join-Path $Shared 'starship.toml') (Join-Path $HOME '.config\starship.toml')
     }
 
-    # --- PowerShell profile ----------------------------------------------------
+    # --- PowerShell profile + its data files + bat themes ----------------------
     if ($All -or $Configs) {
         Write-Host "== PowerShell profile ==" -ForegroundColor Yellow
-        $pwshProfile = Join-Path $HOME 'Documents\PowerShell\profile.ps1'
-        Copy-Config (Join-Path $PSScriptRoot 'Microsoft.PowerShell_profile.ps1') $pwshProfile
+        Copy-Config (Join-Path $PSScriptRoot 'Microsoft.PowerShell_profile.ps1') (Join-Path $HOME 'Documents\PowerShell\profile.ps1')
+        Copy-Config (Join-Path $PSScriptRoot 'keys.txt') (Join-Path $CliTweaksHome 'keys.txt')
+        Copy-Config (Join-Path $Shared 'lesskey')        (Join-Path $CliTweaksHome 'lesskey')
+
+        # bat's Tokyo Night theme (Ubuntu: install-configs.sh). bat finds themes
+        # in its config dir, %APPDATA%\bat\themes, after `bat cache --build`.
+        $batThemes = Join-Path $env:APPDATA 'bat\themes'
+        Get-ChildItem (Join-Path $Shared 'bat\themes') -Filter '*.tmTheme' | ForEach-Object {
+            Copy-Config $_.FullName (Join-Path $batThemes $_.Name)
+        }
+        $bat = Find-Tool 'bat' @("$PkgGlobs\sharkdp.bat*\*\bat.exe")
+        if ($bat) {
+            $BatCache_ = $true                           # record before building
+            if (Invoke-Quiet $bat @('cache', '--build')) { Write-Host "  bat theme cache built." -ForegroundColor Green }
+            else { Write-Host "  bat cache --build failed - run it by hand." -ForegroundColor DarkYellow }
+        } else {
+            Write-Host "  bat not installed yet - themes copied; run 'bat cache --build' after -Packages." -ForegroundColor DarkYellow
+        }
     }
 
-    # --- Alacritty (shared config + Windows pwsh-shell overlay) ----------------
-    if ($All -or $Alacritty) {
-        Write-Host "== Alacritty ==" -ForegroundColor Yellow
-        Winget-Install 'Alacritty.Alacritty'
-        $dst = Join-Path $env:APPDATA 'alacritty\alacritty.toml'
-        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
-        if (-not (Test-FileRegistered $dst)) {   # capture once - see Copy-Config
-            $bak = Backup-Move $dst
-            Register-File $dst $bak                # before writing
-        }
-        $base = (Get-Content (Join-Path $Shared 'alacritty.toml') -Raw).TrimEnd()
-        $over = Get-Content (Join-Path $PSScriptRoot 'alacritty-windows.toml') -Raw
-        Write-Utf8NoBom $dst ($base + "`r`n`r`n" + $over)
-        Write-Host "  installed $dst (with pwsh shell overlay)" -ForegroundColor Green
+    # --- WezTerm (terminal: tabs + panes, replaces Alacritty + tmux) ------------
+    if ($All -or $WezTerm) {
+        Write-Host "== WezTerm ==" -ForegroundColor Yellow
+        # Its logs/sockets dir appears on first launch: note whether it existed.
+        Register-Dir (Join-Path $HOME '.local\share\wezterm')
+        # Nightly, not stable: the last stable release is from 2024-02 and the
+        # config was tested against nightly (which upstream recommends).
+        Winget-Install 'wez.wezterm.nightly'
+        Copy-Config (Join-Path $PSScriptRoot 'wezterm.lua') (Join-Path $HOME '.config\wezterm\wezterm.lua')
     }
 
     # --- Fonts (FiraCode Nerd Font, per-user) ----------------------------------
@@ -339,6 +413,8 @@ try {
     }
 
     # --- Windows "Default terminal application" -> Windows Terminal (opt-in) ----
+    # (WezTerm cannot be the system default terminal: only Windows Terminal
+    # implements that delegation interface.)
     if ($SetWindowsDefaultTerminalApp) {
         Write-Host "== Windows default terminal application -> Windows Terminal ==" -ForegroundColor Yellow
         $startup = 'HKCU:\Console\%%Startup'

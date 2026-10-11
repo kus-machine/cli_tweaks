@@ -1,0 +1,33 @@
+# lesskey source -- less's keys on the UKRAINIAN layout too.
+#
+# less (git log, git diff, `keys`, ...) reads letters, not key positions, so
+# with the Ukrainian layout on, "d" arrives as "в" and nothing happens. Each
+# line below binds the Cyrillic letter on the SAME key cap to the same command
+# as the Latin one.
+#
+# Portable (plain lesskey source, needs less >= 582). Used by:
+#   Windows -- install.ps1 -Configs deploys it to ~\.config\cli_tweaks\lesskey,
+#              the pwsh profile points $env:LESSKEYIN at it (Git for Windows
+#              ships less 668).
+#   Ubuntu  -- not wired yet (same problem there; see docs/PARITY.md).
+#
+# Arrows, PgUp/PgDn, Space, Home/End already work on any layout.
+
+#command
+в       forw-scroll        # d   half a page down
+г       back-scroll        # u   half a page up
+а       forw-screen        # f   a page down
+и       back-screen        # b   a page up
+о       forw-line          # j   a line down
+л       back-line          # k   a line up
+у       forw-line          # e
+н       back-line          # y
+п       goto-line          # g   to the top
+П       goto-end           # G   to the bottom
+.       forw-search        # /   search  (that key types "." on the UA layout)
+,       back-search        # ?   search backwards (Shift+/ types ",")
+т       repeat-search      # n   next match
+Т       reverse-search     # N   previous match
+р       help               # h
+й       quit               # q
+Й       quit               # Q

@@ -11,12 +11,15 @@ _Last updated: 2026-10-05 (zsh trial planned)._
 | # | Decision | Rationale |
 |---|----------|-----------|
 | 1 | **Windows = native PowerShell 7 only** (no WSL, no tmux) | Simpler; user wants a native Windows shell, not a Linux VM |
-| 2 | **Alacritty on all three desktops**, one shared TOML | Maximum visual consistency, single file to maintain |
+| 2 | **Alacritty on Linux/macOS, WezTerm on Windows** (was: Alacritty everywhere; changed 2026-10-12) | Windows has no tmux, and Alacritty alone has no tabs/panes — it "integrated badly". WezTerm has both built in, takes the tmux keys, and won a side-by-side trial against Windows Terminal and Rio |
 | 3 | **Remote/Pi = lightweight bash profile** (fuzzy + macros, no GUI/fonts) | Pi is headless; fast to push over SSH |
 | 4 | **`shared/` holds portable configs** (starship, alacritty, ssh) | De-duplicate; platforms reference, never copy-in |
 | 5 | **Adopt zoxide as canonical** and wire it everywhere | It was documented but never actually wired anywhere |
 
 ## Environment facts (this Windows machine, probed 2026-07-12)
+
+> Since 2026-10-11 the box is back to a clean state (cli_tweaks removed by
+> hand, see "Windows reset" below) except **PowerShell 7, which was kept**.
 
 - Windows PowerShell **5.1** only; **pwsh7 not installed**.
 - Package managers: **winget ✓**, **choco ✓**, scoop ✗ → standardise on winget.
@@ -48,14 +51,15 @@ _Last updated: 2026-10-05 (zsh trial planned)._
   avoid; ask pwsh only for single quote-free expressions.
 - Profile's `PredictionSource` needs a real terminal; now gated on
   `-not [Console]::IsOutputRedirected`.
-- **Cursor lands on an extra line under the `▸`** (found 2026-10-11, not fixed
-  yet): `shared/starship.toml`'s `format` ends with a real `\n` — the last line
-  before the closing `"""` has no trailing `\`. bash builds PS1 with `$(...)`,
-  which strips trailing newlines, so Ubuntu looks right; pwsh prints the prompt
-  string as-is. Fix: end the last format line with `\` (no-op on Ubuntu).
+- **Cursor lands on an extra line under the `▸`** (found 2026-10-11, fixed
+  2026-10-12 on `wezterm_dev`): `shared/starship.toml`'s `format` ended with a
+  real `\n` — the last line before the closing `"""` had no trailing `\`. bash
+  builds PS1 with `$(...)`, which strips trailing newlines, so Ubuntu looked
+  right; pwsh prints the prompt string as-is.
 
 ### Windows polish + uninstaller (done)
-- **Alacritty launches pwsh 7**: `windows/alacritty-windows.toml` overlay
+- *(Superseded 2026-10-12: Windows now uses WezTerm, the overlay is gone.)*
+  **Alacritty launches pwsh 7**: `windows/alacritty-windows.toml` overlay
   (`[terminal.shell] program = "pwsh"`) appended to the shared config on deploy.
   Kept out of `shared/` because it would break Alacritty on Linux/macOS.
 - **`-SetDefaultTerminal`** flag (in `-All`): sets Windows Terminal's default
@@ -236,22 +240,53 @@ shared zshrc could serve Linux and macOS.
 Decided 2026-10-05: too complex for now — Windows stays native pwsh. Options
 on record: zsh on Linux/macOS + pwsh on Windows with **carapace** for the same
 Tab descriptions in both; **WSL2** (literally the same zshrc; reverses locked
-decision 1); **WezTerm** on all three for identical tabs/panes without tmux;
+decision 1); **WezTerm** on all three for identical tabs/panes without tmux
+(now adopted on Windows — see below; Linux/macOS still open);
 nushell / pwsh everywhere (rejected: new language / foreign on Unix).
 
+### Windows reset + WezTerm (2026-10-11/12, branch `wezterm_dev`)
+- **Why:** the first Windows setup took ~5 s to open, printed errors, Alacritty
+  "integrated badly" (no tabs/panes without tmux), and starship put the cursor
+  on a line below the prompt.
+- **Reset by hand, not with `uninstall.ps1`:** its manifest had flagged every
+  package `preexisting` (the first installs ran without a manifest) and its
+  "backups" were older copies of our own configs. Everything was moved to a
+  logged quarantine folder, tools winget-uninstalled (starship/Alacritty MSIs
+  needed elevation), dead PATH entries removed; PowerShell 7 kept.
+- **Terminal trial**, all portable and side by side, no repo edits: WezTerm
+  nightly vs Windows Terminal 1.25 (portable) vs Rio 0.5.28. Rio mostly did not
+  work; **WezTerm chosen** for built-in tabs/panes, a Lua config and the tmux
+  keys (Ctrl+B leader + direct Alt keys).
+- Owner-driven decisions: **no Ctrl+Shift bindings** (it is the layout
+  switch); **physical keys** so Ctrl/Alt bindings work on the Ukrainian layout;
+  labels in overlays are **digits** (same on both layouts); Ctrl+B timeout
+  5 s; hints worded like Ubuntu's tmux hint line; normal Windows title bar
+  (integrated buttons rendered wrong with the Nerd Font); every feature
+  documented → `windows/keys.txt` (`keys`, Ctrl+B ?) + the Ubuntu **banner
+  ported** to pwsh (new windows/tabs, not splits).
+- **Startup ~5 s → ~0.4 s** (pwsh ~0.2 s + profile ~0.2 s): no posh-git,
+  PSFzf lazy-loaded on first Ctrl+T/R/Alt+C (~0.5 s saved), `starship init` /
+  `zoxide init` cached as scripts (starship's `prompt --continuation` spawn
+  baked in as text), starship trailing-newline fix in `shared/starship.toml`.
+  `CLI_TWEAKS_TIMING=1` prints a per-block table.
+- New: tealdeer (`tldr`) + **F1** like Ubuntu; fzf previews (bat/eza, via
+  cmd.exe syntax); `alert` → Windows toast via OSC 777; `Ctrl+D` exits;
+  `Ctrl+B y` copies the last command's output (OSC 133;C on Enter);
+  `shared/lesskey` gives `less` its keys on the Ukrainian layout.
+- Installer/uninstaller rewritten around what the reset taught (record before
+  acting, check winget results, elevated retry for MSIs, dead-PATH cleanup,
+  PSGallery left untrusted, data dirs + caches tracked). **Not yet run
+  end-to-end** — that is step 0 below / docs/REMINDERS.md.
+
 ### 📝 Next up (priority order)
-0. **Validate the 2026-10-05 Windows changes on Windows**: parse both scripts
-   under 5.1 and pwsh 7, `gl` → git log, Alt+C, `uninstall.ps1 -Cosmetic`
-   twice with `-WhatIf` and for real. On the Ubuntu laptop: finish the
-   interrupted `--packages` (xclip is missing), then `--configs` and check
-   the pristine store holds `~/.bashrc.bak` / `~/.bash_aliases.bak`.
-1. **Windows: eyeball interactive session in a real terminal.** Installed +
-   verified programmatically; Alacritty now launches pwsh7 automatically. Still
-   worth opening Alacritty once to confirm the live starship prompt, the
-   fzf `Ctrl+T`/`Ctrl+R`/`Alt+C` keybindings, and that opacity 0.9 renders (if it
-   looks fully opaque, run the 0.6 diagnostic then restore 0.9).
-2. **Port the startup banner + `keys` to zsh and pwsh** once the Ubuntu look is
-   approved (Windows: no tmux rows; `btop4win`). Draft-only on both.
+0. **Validate branch `wezterm_dev` on Windows**: `install.ps1 -All` for real
+   (from Windows PowerShell 5.1), live check against windows/README.md,
+   `uninstall.ps1 -Full -WhatIf`, then merge to main. On the Ubuntu laptop:
+   finish the interrupted `--packages` (xclip is missing), then `--configs`
+   and check the pristine store holds `~/.bashrc.bak` / `~/.bash_aliases.bak`.
+1. **Ubuntu installer safety fixes** — listed in docs/REMINDERS.md.
+2. **Port the startup banner + `keys` to zsh** (pwsh done 2026-10-12).
+   Consider `shared/lesskey` on Ubuntu too (same Ukrainian-layout problem).
 3. **macOS rewrite to parity** (needs a Mac to test):
    - Add starship + `shared/starship.toml`.
    - eza `l`/`la`/`lss`, `fin`; fzf + fd backend; zoxide; btop.

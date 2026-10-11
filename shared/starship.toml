@@ -2,13 +2,16 @@
 # Basic Prompt Look
 ###################################
 
-# The order of things before the cursor
+# The order of things before the cursor.
+# Every line ends with "\" -- the LAST one too: without it the format ends in a
+# real newline. bash builds its prompt with $(...), which strips that newline,
+# but PowerShell prints it, so on Windows the cursor sat one line below the ▸.
 format = """
 $username@$hostname\
  $directory\
  $line_break\
  $git_branch$git_status\
- $line_break $python$character
+ $line_break $python$character\
 """
 
 # New line between prompt and command

@@ -1,0 +1,85 @@
+# cli_tweaks · WezTerm + pwsh (trial)
+
+# TABS  (no Ctrl+B needed)
+Alt+T	new tab, in the current folder
+Alt+1 … Alt+9	go to tab N (or click it)
+Alt+N	rename the tab (empty = automatic name)
+Alt+K	close the tab (asks)
+Ctrl+D	exit the shell = close this pane (the last one closes the tab)
+Ctrl+B w	list of all tabs · ↑ ↓ then Enter (or type its number)
+Ctrl+B <   Ctrl+B >	move the tab left / right
+
+# PANES  (Alt+… directly, or tmux-style: Ctrl+B, let go, then the key -- 5 s)
+Alt+\   Alt+-	split right · split below    = Ctrl+B |   Ctrl+B -
+Alt+← ↑ → ↓	move between panes
+Ctrl+Alt+← ↑ → ↓	resize the pane              = Ctrl+B Ctrl+← ↑ → ↓
+	(after Ctrl+B: keep pressing arrows, Esc when done)
+Alt+Z	zoom the pane to the whole tab and back   = Ctrl+B z
+Alt+X	close the pane (asks)                     = Ctrl+B x
+Ctrl+B q	numbers appear on the panes: press one to jump there
+Ctrl+B {	the same, but swaps this pane with the one you pick
+Ctrl+B !	move this pane out into its own tab
+
+# COPY & PASTE
+select with the mouse	copied already · right click pastes
+Ctrl+C	copies when something is selected, otherwise interrupts
+Ctrl+V	paste
+Ctrl+B y	copy the OUTPUT of the last command
+	try:  dir   then Ctrl+B y   and paste it anywhere
+4× click	select one command's whole output
+Ctrl+B Space	numbers appear over every hash / path / URL / IP:
+	type one -> it is copied.  try it on:  git log --oneline
+Ctrl+B u	the same for links only -> opens the one you pick
+Ctrl+click	open a link (a plain click only selects)
+Ctrl+B [	copy mode: arrows move, v starts selecting, y copies, Esc leaves
+
+# SCROLL & FIND
+Shift+PgUp  Shift+PgDn	scroll back / forward (or the mouse wheel)
+Alt+PgUp  Alt+PgDn	jump to the previous / next command
+Ctrl+B /	search the scrollback · Enter = older match · Esc closes
+
+# LONG OUTPUT  (git log, git diff, keys -- the less pager; both layouts)
+Space  b	page down / up  (PgDn PgUp too)
+d  u	half a page down / up
+g  G	to the top / to the bottom
+/  n  N	search · next match · previous match
+q	quit
+
+# COMMANDS
+l  la  lss	list files · + folder sizes · biggest last
+tree [N] [DIR]	tree, N levels deep · tree1 … tree9 = tree N
+fin TEXT	find files by name, from the current folder
+bat FILE	show a file with syntax colours and line numbers
+tldr CMD	short ready-made examples instead of help pages (tldr tar)
+z PART  ·  zi PART	jump to a visited folder by part of its name
+	learns as you go: cd into it once, then  z cli
+	works anywhere · zi = pick from a list · z - = back
+gs  gd  gl	git status · git diff · git log graph
+rg TEXT	search inside files, from the current folder (ripgrep)
+top  htop	btop system monitor
+c	clear the screen
+CMD; alert	Windows notification when CMD finishes (done / failed)
+	try:  sleep 5; alert   and switch to another window
+keys	this list  (q closes)
+
+# TYPING A COMMAND
+→  End	accept the grey suggestion
+↑  ↓	history starting with what you typed
+Tab	complete; the choices show up as a menu
+Ctrl+T  Ctrl+R  Alt+C	fzf: file · history line · folder to cd into
+	with a preview on the side · Ctrl+/ hides it
+Ctrl+← →	jump one word
+Ctrl+Backspace  Ctrl+Delete	delete the word left / right
+F1	examples for the command you are typing (tldr)
+	git commit + F1 -> git-commit · no page? PowerShell help
+
+# WINDOW
+Ctrl+B o	opacity 0.9 <-> solid
+Ctrl+=  Ctrl+-  Ctrl+0	font size bigger / smaller / reset (Ctrl+wheel too)
+Alt+Enter	full screen
+Ctrl+B l	other shells in a new tab: Windows PowerShell, cmd, WSL
+Ctrl+B s   Ctrl+B S	workspaces (like tmux sessions): switch · new
+Ctrl+B $	rename the current workspace
+Ctrl+B :	command palette: every WezTerm action, searchable
+Ctrl+B r	reload the config
+Ctrl+B ?	this list, in a new tab

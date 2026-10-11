@@ -7,32 +7,43 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 
 | Capability            | Tool / mechanism                    | Ubuntu24 | macOS (zsh) | Windows (pwsh7) |
 |-----------------------|-------------------------------------|:--------:|:-----------:|:---------------:|
-| Prompt                | **starship** (`shared/starship.toml`)| ✅       | 🟡 manual PS1| ✅              |
-| Terminal emulator     | **alacritty** (`shared/alacritty.toml`)| ✅     | 📝          | ✅              |
+| Prompt                | **starship** (`shared/starship.toml`)| ✅       | 🟡 manual PS1| ✅ (newline fix 2026-10-12) |
+| Terminal emulator     | **alacritty** (`shared/alacritty.toml`); Windows: **WezTerm** (`windows/wezterm.lua`) | ✅ | 📝 | ✅ WezTerm |
 | Font                  | FiraCode Nerd Font                   | ✅       | 📝          | ✅              |
 | `ls` w/ icons         | **eza** — `l` `la` `lss`             | ✅       | 🟡 partial  | ✅              |
 | `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | 🟡 untested |
 | find                  | `fin` — fd from the current dir      | ✅       | 📝          | ✅              |
-| Fuzzy search          | **fzf** + fd (Ctrl+T/R, Alt+C)       | ✅       | 🟡 no fd cfg| ✅ (PSFzf; Alt+C 🟡 untested) |
-| Command examples      | **tldr** (tealdeer) + `F1` while typing | ✅ | 📝 | 📝 |
-| fzf previews          | bat file / eza tree / full command, `Ctrl+/` toggles | ✅ | 📝 | 📝 |
+| Fuzzy search          | **fzf** + fd (Ctrl+T/R, Alt+C)       | ✅       | 🟡 no fd cfg| 🟡 PSFzf, lazy-loaded; not eyeballed |
+| Command examples      | **tldr** (tealdeer) + `F1` while typing | ✅ | 📝 | 🟡 built, F1 not eyeballed |
+| fzf previews          | bat file / eza tree / full command, `Ctrl+/` toggles | ✅ | 📝 | 🟡 built (cmd.exe syntax), not eyeballed |
 | Inline autosuggestion | grey text as you type                | ✅ ble.sh| ✅ zsh-autosuggestions | ✅ PSReadLine |
 | Input-line colours    | Tokyo Night faces (`Ubuntu24/configs/.blerc`) | ✅ | 📝          | 📝              |
 | Smart cd              | **zoxide** (`z`, `zi`)               | ✅       | 🟡 *not wired* | ✅          |
 | History (big, dedup, prefix ↑↓) | shell history opts        | ✅       | 🟡 blind, untested | ✅ (PSReadLine) |
-| git shortcuts         | `gs` `gd` `gl`                       | ✅       | ✅ gs/gd/gl/gl1| 🟡 gs/gd/gl (`gl` fix untested) |
+| git shortcuts         | `gs` `gd` `gl`                       | ✅       | ✅ gs/gd/gl/gl1| ✅ (`gl` alias removed, checked 2026-10-12) |
 | System monitor        | **btop** (`top`/`htop`)             | ✅       | 📝          | ✅ (btop4win)   |
-| Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅       | ✅          | 🚫 (no tmux)    |
-| Copy to clipboard     | tmux copy-pipe + `Alt+W` on the line | ✅ xclip | 🟡 pbcopy, untested | 🟡 terminal only |
+| Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅       | ✅          | ✅ WezTerm tabs/panes, tmux keys (no detach) |
+| Copy to clipboard     | tmux copy-pipe + `Alt+W` on the line | ✅ xclip | 🟡 pbcopy, untested | ✅ WezTerm: select = copy, Ctrl+C/V, Ctrl+B y (no Alt+W) |
 | Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | 🟡 blind, untested | ✅       |
 | Word-delete keys      | Ctrl/Alt+Backspace ⌫word, Ctrl+Del word⌦ | ✅ ble.sh + readline fallback | 🟡 blind, untested | ✅ PSReadLine, pinned |
-| Uninstall / revert    | manifest-driven uninstaller          | ✅       | 📝          | ✅              |
-| Startup banner + `keys` | cat + key macros on a new terminal; `keys` = full cheatsheet | ✅ | 📝 | 📝 |
+| Uninstall / revert    | manifest-driven uninstaller          | ✅       | 📝          | 🟡 rewritten 2026-10-12, not run yet |
+| Startup banner + `keys` | cat + key macros on a new terminal; `keys` = full cheatsheet | ✅ | 📝 | ✅ (`windows/keys.txt`, Ctrl+B ?) |
+| Done notification     | `alert` after a long command       | ✅ notify-send | 📝 | 🟡 OSC 777 → toast, not eyeballed |
+| `less` keys on the UA layout | `shared/lesskey` (d = в, q = й …) | 📝 | 📝 | ✅ |
 
 Windows was installed and verified on 2026-07-12 (Windows 11, pwsh 7.6.3): all
 tools install via winget, the profile loads clean, and every macro/tool resolves.
 Interactive fzf keybindings and the live starship prompt need a real terminal to
 eyeball, but their init runs without error.
+
+**Windows, 2026-10-12 (branch `wezterm_dev`):** terminal switched to **WezTerm**,
+which covers the tmux rows (tabs/panes with the same keys, Ctrl+B prefix plus
+direct Alt keys) — the owner tested those live in a trial setup, together with
+the banner, `keys`/Ctrl+B ?, Ctrl+B y, digit labels and the `less` keys on the
+Ukrainian layout. The tools were then re-added (starship fix, fzf previews,
+tldr + F1, alert) and checked programmatically only — rows marked "not
+eyeballed". `install.ps1`/`uninstall.ps1` were rewritten and parse under 5.1
+and 7, but have not been run end-to-end (docs/REMINDERS.md).
 
 SSH config and a Raspberry Pi / remote profile are planned separately — see
 [PLAN.md](PLAN.md).
@@ -85,6 +96,15 @@ several things that looked fine but were not:
   writes its manifest even when a component fails.
 
 ## Known drift / cleanup to reconcile
+
+- **Terminal differs by design**: Alacritty + tmux on Linux/macOS, WezTerm on
+  Windows (PLAN decision 2). The WezTerm keys mirror tmux; Windows also has
+  direct `Alt+\` `Alt+-` `Alt+Z` `Alt+X` / `Ctrl+Alt+arrows` pane keys that
+  tmux on Ubuntu does not have yet — add them there if they stick.
+- **`keys` lives in two places**: Ubuntu's heredoc in `.bash_aliases`, Windows'
+  `windows/keys.txt`. Same format, different content (tmux vs WezTerm rows).
+- **`shared/lesskey`** is wired on Windows only; Ubuntu's `less` has the same
+  Ukrainian-layout problem.
 
 - **zoxide is wired on Ubuntu and Windows only.** The macOS README tells you to
   `brew install zoxide`, but `.zshrc` does not run `zoxide init` yet.

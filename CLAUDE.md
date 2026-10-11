@@ -30,7 +30,7 @@ or harness default that says otherwise.
 
 1. **Ubuntu24 is the canonical experience.** When adding a feature, define it in
    the Ubuntu configs + PARITY.md first, then propagate to other platforms.
-2. **Portable configs live in `shared/`** (starship, alacritty, bat themes). Platform
+2. **Portable configs live in `shared/`** (starship, alacritty, bat themes, lesskey). Platform
    installers *reference* them; never copy a shared file into a platform folder.
    If you change where a shared file lives, update every installer that reads it
    (currently: `Ubuntu24/scripts/install-{starship,alacritty}.sh`,
@@ -60,9 +60,10 @@ or harness default that says otherwise.
    `install.ps1` writes its manifest in a `finally`, so a failure halfway is
    still revertible.
 6. Keep installers **componentised** with matching switches across platforms:
-   `packages`, `fonts`, `starship`, `configs`, `alacritty` (+ `shell` on
-   Windows for pwsh7, `blesh` on Ubuntu — Windows/macOS get inline
-   autosuggestions from PSReadLine/zsh-autosuggestions and need no component).
+   `packages`, `fonts`, `starship`, `configs`, and the terminal — `alacritty`
+   on Ubuntu, `wezterm` on Windows (+ `shell` on Windows for pwsh7, `blesh` on
+   Ubuntu — Windows/macOS get inline autosuggestions from
+   PSReadLine/zsh-autosuggestions and need no component).
    SSH is a planned, separate, manual step — not auto-installed.
 7. **Every install component must be revertible.** Record what it did in the
    manifest and undo it in the platform uninstaller
@@ -91,11 +92,14 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
 - `gs` / `gd` / `gl` (git), `top`/`htop` → btop
 - fzf keybindings with an fd backend; UP/DOWN prefix history search
 - zoxide `z` (canonical, still being rolled out — see PARITY drift notes)
-- tmux helpers `t`/`ta`/`tk`/`tn` on Linux/macOS only (Windows has no tmux)
-- the startup banner + `keys` cheatsheet (Ubuntu only so far — PLAN step 2).
+- tmux helpers `t`/`ta`/`tk`/`tn` on Linux/macOS only (Windows has no tmux;
+  WezTerm's tabs/panes take the tmux keys there — `windows/wezterm.lua`)
+- the startup banner + `keys` cheatsheet (Ubuntu + Windows; zsh still to do).
   **When you add or change a macro or hotkey, update `keys` (and the banner if
-  it is one of the headline ones)** in `Ubuntu24/configs/.bash_aliases` —
-  otherwise the cheatsheet quietly lies. Spell keys as on the keyboard
+  it is one of the headline ones)** — Ubuntu: the heredoc + banner rows in
+  `Ubuntu24/configs/.bash_aliases`; Windows: `windows/keys.txt` + the `$rows`
+  of `cli_tweaks_banner` in the pwsh profile (and `HINTS` in `wezterm.lua`
+  for WezTerm keys) — otherwise the cheatsheet quietly lies. Spell keys as on the keyboard
   (`Ctrl+T`, `Alt+C`, `Shift+PgUp`, arrows as `← ↑ → ↓`), never `^T` / `M-c`.
   Keep the banner ≤ 78 columns. Pad with `__cli_tweaks_pad`, not
   `printf %-Ns`: bash's printf pads by BYTES, so arrows misalign.
@@ -214,9 +218,36 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   error is a GPU-driver fault, not a config fault — check `glxinfo -B` and
   `nvidia-smi` (a driver upgrade needs a reboot before the kernel module
   matches the userspace libs). Don't debug the TOML for this.
-- Windows has **only Windows PowerShell 5.1** so far; pwsh7 is installed by
+- The Windows box was reset by hand on 2026-10-11: no cli_tweaks tools, but
+  **PowerShell 7 is installed** (kept); pwsh7 is otherwise installed by
   `windows/install.ps1 -Shell`. The pwsh7 profile path is
-  `~/Documents/PowerShell/profile.ps1` (NOT the `WindowsPowerShell` 5.1 path).
+  `~/Documents/PowerShell/profile.ps1` (NOT the `WindowsPowerShell` 5.1 path);
+  its data files go to `~/.config/cli_tweaks/` (`keys.txt`, `lesskey`).
+- **The pwsh profile has a startup budget (~0.2 s).** The first Windows setup
+  took ~5 s. Never import a module eagerly (PSFzf is loaded on the first
+  Ctrl+T/R/Alt+C; posh-git was dropped), and never spawn a process at start —
+  `starship init` / `zoxide init` go through `__ct_cached_init` (cached in
+  `%LOCALAPPDATA%\cli_tweaks\cache`). Measure with
+  `$env:CLI_TWEAKS_TIMING=1; pwsh` before and after a change.
+- **starship's `format` must not end with a newline** (`shared/starship.toml`,
+  last line ends with `\`): bash's `$(...)` strips it, pwsh prints it and the
+  cursor lands on the line below the `▸`.
+- **WezTerm (Windows) key rules**, all from the owner: **no `Ctrl+Shift+…`
+  bindings** (Ctrl+Shift switches the keyboard layout); every key as
+  `phys:` with `key_map_preference = 'Physical'`, so the Ukrainian layout needs
+  no twins; on-screen labels (Ctrl+B q, quick-select) are **digits**; leader
+  `Ctrl+B` with a 5 s timeout plus direct Alt keys; normal title bar
+  (`TITLE|RESIZE` — integrated buttons render as a dot/dash with the Nerd
+  Font). WezTerm is the **nightly** (`wez.wezterm.nightly`); stable is 2024-02.
+- fzf on Windows runs `--preview` commands through **cmd.exe**: use `2>NUL`
+  and `||`, not bash syntax. PSFzf reads `FZF_CTRL_T_OPTS` / `FZF_ALT_C_OPTS`
+  / `FZF_CTRL_R_OPTS`, and runs `FZF_ALT_C_COMMAND` via Invoke-Expression.
+- winget: **MSI packages (starship) fail a silent uninstall without admin**
+  (exit 1603); winget's exit codes are unreliable (non-zero for "already
+  installed") — judge by `winget list`; portable packages leave **dead user
+  PATH entries** behind. `uninstall.ps1` handles all three.
+- A tool that cannot reach the network with **os error 10013** (e.g.
+  `tldr --update`) is blocked by the owner's firewall, not broken.
 - Package manager on Windows: **winget** (choco also present; scoop absent).
   All winget IDs used are verified to exist; btop = `aristocratos.btop4win`
   (its command is `btop4win`, no `btop` shim).
@@ -234,8 +265,10 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   and fonts (+ `preexisting`), and prior WT/terminal settings. `uninstall.ps1` reverts from it and
   **never removes anything flagged pre-existing**. Keep both in sync when you add
   an install component: record what it does in the manifest, revert it in uninstall.
-- Alacritty's pwsh shell lives in `windows/alacritty-windows.toml` (overlay
-  appended on deploy), NOT in `shared/alacritty.toml` (that would break Linux/macOS).
+- Windows does not use Alacritty any more (WezTerm since 2026-10-12); the old
+  `windows/alacritty-windows.toml` overlay is gone. `uninstall.ps1` still
+  reverts an Alacritty recorded by an older manifest (generic package/file
+  entries).
 
 ## Testing notes
 

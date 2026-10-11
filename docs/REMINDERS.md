@@ -69,3 +69,37 @@ Smaller, same pass:
   one more `.bak.<ts>` per install/uninstall cycle.
 - `uninstall.sh` can stop halfway under `set -e` (e.g. `cp -a` into a deleted
   parent dir, missing `fc-cache`); re-running is safe.
+
+---
+
+## 2. Windows: validate branch `wezterm_dev`, then merge
+
+_Added 2026-10-12. The owner had no time to test; everything was pushed on
+their go-ahead. Do this **on the Windows box**._
+
+The WezTerm + pwsh setup was hand-tested in a trial folder; the repo version
+(`windows/install.ps1`, `uninstall.ps1`, profile, `wezterm.lua`, `keys.txt`,
+`shared/lesskey`, the `shared/starship.toml` newline fix) has only been
+parse-checked and load-tested, never installed for real.
+
+0. **First remove the trial's traces**, or the install will record them as
+   `preexisting` and uninstall will never remove them: close WezTerm, delete
+   `C:\Users\pawla\cli_tweaks_trial\` and `~\.local\share\wezterm`, and
+   unregister the 18 `FiraCodeNerdFont*` fonts the trial re-registered
+   (files in `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, values under
+   `HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts`). PowerShell 7
+   stays (it predates this and is correctly `preexisting`).
+1. From **Windows PowerShell 5.1**: `cd windows; ./install.ps1 -All`
+   (UAC prompts for the MSI packages are expected). Read the manifest it wrote.
+2. Open WezTerm and walk the checklist in `windows/README.md` ("After
+   installing"): banner, `keys` / Ctrl+B ?, Alt/Ctrl+B pane keys, Ctrl+B y,
+   starship (cursor right after `▸`, red on failure), Ctrl+T/Ctrl+R/Alt+C
+   with previews, `z`, F1, `alert`, `less` keys on the Ukrainian layout.
+   `$env:CLI_TWEAKS_TIMING=1; pwsh` should show ~0.2 s.
+3. `./uninstall.ps1 -Full -WhatIf`, then `-Cosmetic` twice for real, then
+   `./install.ps1 -Configs` again (manifest bookkeeping across re-runs).
+4. If all good: merge `wezterm_dev` into `main`, update PARITY.md's
+   "not eyeballed" cells.
+5. Then delete `C:\Users\pawla\cli_tweaks_cleanup_20261011_224657\`
+   (quarantine of the old install; `cleanup.log` maps every file) — nothing
+   in it is needed once the new install works.

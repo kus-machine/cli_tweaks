@@ -3,14 +3,16 @@
 My personal CLI setup — one consistent, Ubuntu-24-style terminal experience
 across **Linux, macOS, and Windows 11**.
 
-Fuzzy search (fzf), icon `ls` (eza), a nice prompt (starship), the Alacritty
-terminal, and handy macros — installed the same way, feeling the same way,
+Fuzzy search (fzf), icon `ls` (eza), a nice prompt (starship), a Tokyo Night
+terminal with tabs and panes, and handy macros — installed the same way, feeling the same way,
 everywhere.
 
 ## What you get
 
 - **Prompt:** starship (`shared/starship.toml`)
-- **Terminal:** Alacritty, Tokyo Night, FiraCode Nerd Font (`shared/alacritty.toml`)
+- **Terminal:** Tokyo Night + FiraCode Nerd Font — Alacritty + tmux on
+  Linux/macOS (`shared/alacritty.toml`), WezTerm on Windows with the same tab
+  and pane keys (`windows/wezterm.lua`)
 - **Fuzzy search:** fzf + fd — `Ctrl+T` files, `Ctrl+R` history, `Alt+C` cd
 - **Inline autosuggestions:** grey completion-as-you-type from history —
   ble.sh (bash), zsh-autosuggestions (zsh), PSReadLine prediction (pwsh)
@@ -18,7 +20,7 @@ everywhere.
   dir), `gs`/`gd`/`gl` (git), `z` (zoxide),
   `top`/`htop` → btop, tmux helpers `t`/`ta`/`tk`/`tn` (Linux/macOS)
 - **Startup banner:** a new terminal shows an ASCII cat with the key macros;
-  `keys` prints the full cheatsheet of commands and hotkeys (Ubuntu for now)
+  `keys` prints the full cheatsheet of commands and hotkeys (Ubuntu + Windows)
 
 See **[docs/PARITY.md](docs/PARITY.md)** for exactly what's wired on each platform.
 Planned work (macOS parity, SSH config, Raspberry Pi) lives in
@@ -29,7 +31,7 @@ Planned work (macOS parity, SSH config, Raspberry Pi) lives in
 | Platform | How to install |
 |----------|----------------|
 | **Linux (Ubuntu 24)** | `cd Ubuntu24 && ./install.sh --all` |
-| **Windows 11** | `cd windows; ./install.ps1 -All`  *(installs PowerShell 7 + tools; draft)* |
+| **Windows 11** | `cd windows; ./install.ps1 -All`  *(PowerShell 7 + tools + WezTerm; branch `wezterm_dev`, not run end-to-end yet)* |
 | **macOS** | 📝 planned — see [docs/PLAN.md](docs/PLAN.md) |
 
 Each installer is componentised — install only what you want. Linux example:
