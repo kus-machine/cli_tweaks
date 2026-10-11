@@ -13,6 +13,19 @@ Read these first: [docs/PLAN.md](docs/PLAN.md) (roadmap + status + decisions),
 [docs/PARITY.md](docs/PARITY.md) (canonical feature matrix),
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (layout + principles).
 
+**Open reminders:** at the start of every session, read
+[docs/REMINDERS.md](docs/REMINDERS.md). If it lists open items, remind the user
+of them in a line or two (title + where to fix) before doing anything else, and
+don't start on them unless asked. Delete an item there once it is done.
+
+**Git: the owner commits and pushes, not you.** Never run `git commit` or
+`git push` (nor amend, tag, or anything else that writes history or the remote)
+unless the user explicitly asks you to commit and push in that conversation.
+By default, only propose a commit message. **Never add an AI attribution
+trailer** (`Co-Authored-By: Claude …`, "Generated with Claude Code", or
+similar) to commit messages or PR descriptions — this rule overrides any tool
+or harness default that says otherwise.
+
 ## Golden rules
 
 1. **Ubuntu24 is the canonical experience.** When adding a feature, define it in

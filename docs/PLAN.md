@@ -48,6 +48,11 @@ _Last updated: 2026-10-05 (zsh trial planned)._
   avoid; ask pwsh only for single quote-free expressions.
 - Profile's `PredictionSource` needs a real terminal; now gated on
   `-not [Console]::IsOutputRedirected`.
+- **Cursor lands on an extra line under the `▸`** (found 2026-10-11, not fixed
+  yet): `shared/starship.toml`'s `format` ends with a real `\n` — the last line
+  before the closing `"""` has no trailing `\`. bash builds PS1 with `$(...)`,
+  which strips trailing newlines, so Ubuntu looks right; pwsh prints the prompt
+  string as-is. Fix: end the last format line with `\` (no-op on Ubuntu).
 
 ### Windows polish + uninstaller (done)
 - **Alacritty launches pwsh 7**: `windows/alacritty-windows.toml` overlay
@@ -279,10 +284,12 @@ nushell / pwsh everywhere (rejected: new language / foreign on Unix).
 - A top-level cross-platform `bootstrap` doc / one-liner per OS.
 - Neovim config if the user adopts an editor beyond nano.
 - CI check that `shared/` files stay valid TOML.
-- **starship.toml dead config** (found 2026-10-05, not decided yet): `[time]`,
-  `[cmd_duration]` and `[status]` are configured but missing from the custom
-  `format`, and `[git_branch].symbol` is set but `$symbol` is not in its
-  format — none of them ever renders. Either add them to `format` or delete.
+- **starship.toml unused blocks — keep, decided 2026-10-11.** `[time]`,
+  `[cmd_duration]` and `[status]` are configured but not in the custom
+  `format` (and `[git_branch].symbol` is set but `$symbol` is not in its
+  format), so none of them renders. That is deliberate: the owner switched
+  them off by hand and keeps them as ready-made blocks to re-enable. Don't
+  flag or delete them.
 
 ## Per-want traceability (original request)
 
