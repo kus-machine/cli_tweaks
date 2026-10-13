@@ -45,6 +45,14 @@ elif [[ -s "$BLESH_DIR/ble.sh" ]]; then
     ok "ble.sh already installed at $BLESH_DIR - not reinstalling"
     echo "   to update it, run inside a shell:  ble-update"
 else
+    # Record BEFORE installing (CLAUDE.md rule 5a): an interrupted --install
+    # would otherwise leave a half-made $BLESH_DIR that the next run takes for
+    # the user's own ble.sh and never repairs or removes. ~/.cache/blesh is
+    # where ble.sh builds its caches on first attach -- ours too, unless it
+    # is already there.
+    record_dir "$BLESH_DIR" false
+    [[ -e "$HOME/.cache/blesh" ]] || record_dir "$HOME/.cache/blesh" false
+
     info "downloading ble.sh (nightly)"
     curl -fsSL --retry 2 -o "$TMP_DIR/ble-nightly.tar.xz" "$BLESH_URL"
 
@@ -62,10 +70,6 @@ else
     bash "${sources[0]}" --install "$HOME/.local/share" >/dev/null
 
     [[ -s "$BLESH_DIR/ble.sh" ]] || die "ble.sh install did not produce $BLESH_DIR/ble.sh"
-    record_dir "$BLESH_DIR" false
-    # ble.sh builds terminfo/keymap caches here on first attach. It exists only
-    # because of the install above, so uninstall --full may drop it too.
-    record_dir "$HOME/.cache/blesh" false
 fi
 
 echo

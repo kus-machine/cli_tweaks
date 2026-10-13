@@ -1,12 +1,16 @@
 -- ============================================================================
--- cli_tweaks -- WezTerm config (Windows)
+-- cli_tweaks -- WezTerm config (Windows + Ubuntu)
 -- ----------------------------------------------------------------------------
--- Deployed by  windows/install.ps1 -WezTerm  to
---   ~\.config\wezterm\wezterm.lua
+-- Deployed to ~/.config/wezterm/wezterm.lua by
+--   windows/install.ps1 -WezTerm        (Windows: the only terminal)
+--   Ubuntu24/install.sh --wezterm       (Ubuntu: the alternative to
+--                                        --alacritty, pick one or both)
 -- Saved -> WezTerm reloads it by itself (no restart needed).
+-- The few OS differences are under `if IS_WINDOWS` -- keep them few.
 --
--- WezTerm replaces Alacritty + tmux on Windows: tabs and panes are built in,
--- and the keys mirror Ubuntu's tmux setup (Ubuntu24/configs/.tmux.conf):
+-- WezTerm replaces Alacritty + tmux: tabs and panes are built in, and the
+-- keys mirror Ubuntu's tmux setup (Ubuntu24/configs/.tmux.conf). On Ubuntu
+-- tmux stays installed (ssh, detach), WezTerm just does not start it:
 --   Alt+1..9 / Alt+T / Alt+N / Alt+K   tabs, no prefix
 --   Ctrl+B then a key                  the tmux keys (| - z x w ...)
 --   Alt+\ Alt+- Alt+Z Alt+X            the everyday pane keys, no prefix
@@ -18,30 +22,49 @@
 -- Every binding uses PHYSICAL key positions, so it works the same with the
 -- Ukrainian layout on -- no Cyrillic twins needed (unlike Alacritty/tmux).
 --
--- Cheat sheet: Ctrl+B ?  or  `keys`  -- both show windows/keys.txt
--- (deployed to ~\.config\cli_tweaks\keys.txt).
--- KEEP keys.txt IN SYNC when a binding here changes.
+-- Cheat sheet: Ctrl+B ?  or  `keys`. KEEP BOTH IN SYNC when a binding here
+-- changes: Windows -- windows/keys.txt (deployed to
+-- ~\.config\cli_tweaks\keys.txt); Ubuntu -- the WEZTERM section of `keys`
+-- in Ubuntu24/configs/.bash_aliases.
 -- ============================================================================
 
 local wezterm = require 'wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 
+local IS_WINDOWS = wezterm.target_triple:find('windows') ~= nil
+
 -- ===========================================================================
 -- Shell
 -- ===========================================================================
--- PowerShell 7 with the cli_tweaks profile (~\Documents\PowerShell\profile.ps1).
-local PWSH = { 'pwsh.exe', '-NoLogo' }
-config.default_prog = PWSH
 config.default_cwd = wezterm.home_dir
-
--- Ctrl+B l  -- launcher: other shells in a new tab. WSL distros show up there
--- by themselves.
-config.launch_menu = {
-  { label = 'PowerShell 7 (cli_tweaks)', args = PWSH },
-  { label = 'Windows PowerShell 5.1',    args = { 'powershell.exe', '-NoLogo' } },
-  { label = 'cmd',                       args = { 'cmd.exe' } },
-}
+if IS_WINDOWS then
+  -- PowerShell 7 with the cli_tweaks profile (~\Documents\PowerShell\profile.ps1).
+  local PWSH = { 'pwsh.exe', '-NoLogo' }
+  config.default_prog = PWSH
+  -- Ctrl+B l  -- launcher: other shells in a new tab. WSL distros show up
+  -- there by themselves.
+  config.launch_menu = {
+    { label = 'PowerShell 7 (cli_tweaks)', args = PWSH },
+    { label = 'Windows PowerShell 5.1',    args = { 'powershell.exe', '-NoLogo' } },
+    { label = 'cmd',                       args = { 'cmd.exe' } },
+  }
+else
+  -- No default_prog: WezTerm starts your login shell (bash, as a login
+  -- shell -- like tmux does, see the bash-completion note in .bashrc).
+  --
+  -- The wezterm package drops a shell integration into /etc/profile.d. It
+  -- hooks PROMPT_COMMAND and the DEBUG trap (bash-preexec) BEFORE ~/.bashrc
+  -- loads ble.sh, and ble.sh wants to own both. Switched off here; .bashrc
+  -- sends the prompt/output marks it would have sent (OSC 133) through
+  -- ble.sh's own hooks instead. The cwd WezTerm reads from /proc.
+  config.set_environment_variables = { WEZTERM_SHELL_SKIP_ALL = '1' }
+  config.launch_menu = {
+    { label = 'bash (cli_tweaks)',  args = { 'bash', '-l' } },
+    { label = 'tmux (session main)', args = { 'tmux', 'new-session', '-A', '-s', 'main' } },
+    { label = 'bash without ble.sh / cli_tweaks', args = { 'bash', '--norc', '--noprofile' } },
+  }
+end
 
 
 -- ===========================================================================
@@ -72,7 +95,7 @@ config.visual_bell = {
   target = 'CursorColor',
 }
 
--- `alert` (pwsh profile) -> Windows toast, also while the window is focused.
+-- `alert` -> Windows toast / Ubuntu notify-send popup, even while focused.
 config.notification_handling = 'AlwaysShow'
 
 -- The normal Windows title bar with the normal _ □ X buttons, tabs right
@@ -101,16 +124,22 @@ config.colors = {
 -- something runs (btop, ssh, ...) -- the same rule as tmux's automatic-rename.
 -- A title set with Alt+N wins.
 local function basename(s) return (s:gsub('[/\\]+$', ''):match('([^/\\]+)$')) or s end
+-- a path in one spelling: forward slashes, no trailing one, no "/" before
+-- "C:" (file URLs have it), case-folded on Windows only
+local function norm(p)
+  p = p:gsub('\\', '/'):gsub('/+$', ''):gsub('^/(%a:)', '%1')
+  return IS_WINDOWS and p:lower() or p
+end
+local SHELLS = { pwsh = true, powershell = true, cmd = true, bash = true, zsh = true, sh = true }
 wezterm.on('format-tab-title', function(tab)
   local title = tab.tab_title
   if not title or title == '' then
     local pane = tab.active_pane
     local proc = basename(pane.foreground_process_name or ''):gsub('%.exe$', '')
-    if proc == '' or proc == 'pwsh' or proc == 'powershell' or proc == 'cmd' then
+    if proc == '' or SHELLS[proc] then
       local cwd = pane.current_working_dir
       title = cwd and basename(cwd.file_path or tostring(cwd)) or proc
-      if cwd and (cwd.file_path or ''):gsub('/', '\\'):lower():gsub('^\\', '')
-          == wezterm.home_dir:lower() then
+      if cwd and norm(cwd.file_path or '') == norm(wezterm.home_dir) then
         title = '~'
       end
     else
@@ -175,7 +204,8 @@ config.status_update_interval = 1000
 -- ===========================================================================
 config.key_map_preference = 'Physical'
 
--- tmux-style prefix. Ctrl+B is "cursor left" in pwsh -- nobody misses it;
+-- tmux-style prefix. Ctrl+B is "cursor left" in pwsh and bash -- nobody
+-- misses it;
 -- Ctrl+B Ctrl+B sends a real Ctrl+B through. 5 s to press the next key
 -- (tmux itself waits forever; the yellow badge shows it is still armed).
 config.leader = { key = 'phys:B', mods = 'CTRL', timeout_milliseconds = 5000 }
@@ -202,15 +232,17 @@ wezterm.on('new-tab-button-click', function(window, pane, button)
 end)
 local RESIZE_MODE = act.ActivateKeyTable { name = 'resize', one_shot = false, timeout_milliseconds = 3000 }
 
--- Ctrl+B ?: the full cheatsheet (keys.txt) in a new tab; q closes it.
--- `keys` comes from the pwsh profile; no banner in that tab.
+-- Ctrl+B ?: the full cheatsheet in a new tab; q closes it. `keys` comes from
+-- the pwsh profile / ~/.bash_aliases; no banner in that tab.
 local SHOW_KEYS = act.SpawnCommandInNewTab {
-  args = { 'pwsh.exe', '-NoLogo', '-Command', 'keys -Stay' },
+  args = IS_WINDOWS and { 'pwsh.exe', '-NoLogo', '-Command', 'keys -Stay' }
+                     or { 'bash', '-c', '. ~/.bash_aliases && keys --stay' },
   set_environment_variables = NO_BANNER,
 }
 
 -- Ctrl+B y: copy the output of the last finished command. Needs the
--- OSC 133;C mark the pwsh profile sends on Enter.
+-- OSC 133;C mark the shell sends on Enter (pwsh profile; on Ubuntu .bashrc
+-- through ble.sh -- without ble.sh there are no marks and this finds nothing).
 local copy_last_output = wezterm.action_callback(function(window, pane)
   local zones = pane:get_semantic_zones('Output')
   for i = #zones, 1, -1 do
@@ -234,7 +266,9 @@ end)
 
 -- Ctrl+C: copy if something is selected, otherwise the usual Ctrl+C
 -- (interrupt). Ctrl+V: paste. The Windows habit, since Ctrl+Shift+C/V would
--- flip the keyboard layout here.
+-- flip the keyboard layout there. (WezTerm's own Ctrl+Shift+C/V still work,
+-- Ubuntu's terminal habit. bash's Ctrl+V = "insert next key verbatim" is
+-- what this costs.)
 local smart_copy = wezterm.action_callback(function(window, pane)
   local sel = window:get_selection_text_for_pane(pane)
   if sel ~= '' then
@@ -322,7 +356,7 @@ local keys = {
   -- --- scrolling ------------------------------------------------------------
   { key = 'PageUp',   mods = 'SHIFT', action = act.ScrollByPage(-1) },
   { key = 'PageDown', mods = 'SHIFT', action = act.ScrollByPage(1) },
-  -- jump between commands (prompt marks from the pwsh profile)
+  -- jump between commands (OSC 133 prompt marks, see Ctrl+B y)
   { key = 'PageUp',   mods = 'ALT', action = act.ScrollToPrompt(-1) },
   { key = 'PageDown', mods = 'ALT', action = act.ScrollToPrompt(1) },
 
@@ -353,6 +387,24 @@ local keys = {
 }
 for i = 1, 9 do
   table.insert(keys, { key = 'phys:' .. i, mods = 'ALT', action = act.ActivateTab(i - 1) })
+end
+
+-- Linux + the Ukrainian layout: Ctrl+R typed as Ctrl+К must still reach bash
+-- as Ctrl+R (and Alt+C as Alt+C, for fzf). Windows' console does that on its
+-- own; on Linux WezTerm would send the Cyrillic letter. So every Ctrl+letter
+-- and Alt+letter that is not bound above is sent by its PHYSICAL key -- the
+-- WezTerm twin of the generated Ukrainian block in shared/alacritty.toml.
+if not IS_WINDOWS then
+  local taken = { ['CTRL phys:B'] = true }   -- the leader is not in `keys`
+  for _, k in ipairs(keys) do taken[k.mods .. ' ' .. k.key] = true end
+  for c in ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'):gmatch('.') do
+    for _, m in ipairs { 'CTRL', 'ALT' } do
+      if not taken[m .. ' phys:' .. c] then
+        table.insert(keys, { key = 'phys:' .. c, mods = m,
+                             action = act.SendKey { key = c:lower(), mods = m } })
+      end
+    end
+  end
 end
 config.keys = keys
 

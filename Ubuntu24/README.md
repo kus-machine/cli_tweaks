@@ -189,13 +189,68 @@ Provides:
 
 ---
 
-## Install Everything
+### --wezterm
+
+The other terminal. Installs:
+
+- WezTerm **nightly** from upstream's apt repository (`apt.fury.io/wez`; the
+  key goes to `/usr/share/keyrings/wezterm-fury.gpg`, the source to
+  `/etc/apt/sources.list.d/wezterm.list` — both recorded, both removed again
+  by `uninstall.sh --full`). Updates arrive with `sudo apt upgrade`.
+- `shared/wezterm.lua` → `~/.config/wezterm/wezterm.lua` — the **same file as
+  on Windows**.
+
+Tabs and panes are built into WezTerm, on the same keys as the tmux setup
+(`Alt+1..9`, `Alt+T`, `Ctrl+B |` …) plus direct `Alt+\` `Alt+-` `Alt+Z`
+`Alt+X`. tmux stays installed (for ssh and detach) — WezTerm just does not
+start it; `Ctrl+B l` opens a tab with tmux in it. In WezTerm the banner and
+`keys` show the WezTerm keys instead of the tmux ones (`Ctrl+B ?` too), and
+`.bashrc` sends the prompt marks (OSC 133) through ble.sh for `Ctrl+B y`
+(copy the last output) and `Alt+PgUp`/`Alt+PgDn` (jump between commands).
 
 ```bash
-./install.sh --all
+./install.sh --wezterm
 ```
 
-This installs:
+---
+
+### The terminal you install is the default one
+
+`--alacritty` / `--wezterm` also make that terminal the desktop's terminal.
+One per run (naming both is an error); to try the other, install it in a
+second run — the last one installed is the default:
+
+```bash
+./install.sh --all --wezterm      # WezTerm, and it is the default
+./install.sh --alacritty          # add Alacritty; now IT is the default
+```
+
+What "default" covers:
+
+- **Ctrl+Alt+T** — sets the system-wide `x-terminal-emulator` alternative
+  (`sudo update-alternatives --set`). Installing a terminal only registers it
+  there; whoever pinned the alternative before keeps it until this runs.
+- **Files, right click** — adds "Open in Alacritty"
+  (`configs/nautilus/cli_tweaks_terminal.py` → `~/.local/share/nautilus-python/extensions/`)
+  and installs `python3-nautilus`, which also switches on WezTerm's own
+  "Open in WezTerm". Restart Files once: `nautilus -q`. GNOME's "Open in
+  Terminal" stays next to it and opens GNOME Terminal — two explicit choices.
+
+The alternative's state before the first change is recorded; `uninstall.sh`
+(`--configs` too) puts it back.
+
+---
+
+## Install Everything
+
+`--all` installs everything **except the terminal, which you name**:
+
+```bash
+./install.sh --all --alacritty     # Alacritty, tabs/panes from tmux
+./install.sh --all --wezterm       # WezTerm, tabs/panes built in (as on Windows)
+```
+
+A bare `./install.sh --all` stops with an error. This installs:
 
 - CLI packages
 - Nerd Fonts
@@ -203,7 +258,7 @@ This installs:
 - Tmux configuration
 - Starship
 - ble.sh (inline autosuggestions)
-- Alacritty
+- the terminal you named, as the default terminal
 
 ---
 
@@ -231,12 +286,29 @@ it **without ever removing something that was already on the machine**.
 ./uninstall.sh --configs            # restore original dotfiles, keep the tools
 ./uninstall.sh --full               # also remove packages/fonts/starship WE added
 ./uninstall.sh --full --dry-run     # show what would happen, change nothing
+./uninstall.sh --full --yes         # do not ask before the apt removal
 ```
 
 `--configs` is the "make my shell normal again" button. `--full` additionally
 apt-removes only the packages whose manifest entry says `preexisting: false`,
 and deletes `~/.local/share/blesh` + `~/.cache/blesh` if we were the ones who
-put ble.sh there.
+put ble.sh there, plus the WezTerm apt repository files if we added them.
+
+The apt step is careful, because a plain `apt-get remove` + `autoremove`
+removes far more than ours (on SF-WS1181 `autoremove` alone would have taken
+21 NVIDIA driver packages):
+
+- each of our packages is first **simulated** (`apt-get -s`); one whose
+  removal would take anything that is not ours along (e.g. `git` while
+  `git-lfs` is installed) is kept, with a warning, and stays in the manifest
+  for a later `--full`;
+- of the orphaned packages, only those that **our** removal orphans go —
+  never the ones that were orphaned already;
+- you see the exact list and confirm (`--yes` skips the question).
+
+Both modes are safe to repeat; a second `--full` just says there is nothing
+left. Empty folders we created (`~/.config/alacritty`, `~/.config/bat/themes`,
+`~/.local/share/fonts` …) are removed too.
 
 The pristine copies are deliberately kept after `--full`, so a later re-install
 still has your real originals to fall back on. Delete

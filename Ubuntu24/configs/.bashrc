@@ -292,7 +292,8 @@ fi
 #   * inside tmux, only in the very first pane of a new session -- not on
 #     Ctrl+B | / Ctrl+B - splits or Ctrl+B c windows;
 #   * outside tmux, only in a top-level shell (SHLVL 1), so typing `bash`
-#     inside bash stays quiet;
+#     inside bash stays quiet. In WezTerm that is every new tab; its splits
+#     come with CLI_TWEAKS_BANNER=0 (shared/wezterm.lua);
 #   * never when output is not a terminal.
 # After ~/.bashrc.local, so `CLI_TWEAKS_BANNER=0` there switches it off.
 # Defined in ~/.bash_aliases.
@@ -303,6 +304,27 @@ if [[ ${CLI_TWEAKS_BANNER-1} != 0 && -t 1 ]] && declare -F cli_tweaks_banner >/d
     elif [[ ${SHLVL:-1} -le 1 ]]; then
         cli_tweaks_banner
     fi
+fi
+
+
+# ---------------------------------------------------------------------------
+# WezTerm: prompt / output marks (OSC 133)
+# ---------------------------------------------------------------------------
+# WezTerm's Ctrl+B y (copy the last command's output), Alt+PgUp / Alt+PgDn
+# (jump between commands) and a 4× click (one command's whole output) need the
+# shell to mark where each prompt and each command's output begins.
+# shared/wezterm.lua switches off the package's own integration
+# (/etc/profile.d/wezterm.sh): it is bash-preexec, which hooks PROMPT_COMMAND
+# and the DEBUG trap before ble.sh is loaded, and ble.sh wants both. These two
+# ble.sh hooks send the same marks. Without ble.sh there are none, and those
+# three keys simply find nothing. Inside tmux, TERM_PROGRAM is tmux: no marks.
+if [[ ${TERM_PROGRAM-} == WezTerm && ${BLE_VERSION-} ]]; then
+    # 133;D = the previous command ended (with its exit code), 133;A = a
+    # prompt starts here, 133;C = the command's output starts here.
+    __cli_tweaks_osc133_precmd()  { printf '\e]133;D;%s\a\e]133;A\a' "$?"; }
+    __cli_tweaks_osc133_preexec() { printf '\e]133;C\a'; }
+    blehook PRECMD!=__cli_tweaks_osc133_precmd
+    blehook PREEXEC!=__cli_tweaks_osc133_preexec
 fi
 
 

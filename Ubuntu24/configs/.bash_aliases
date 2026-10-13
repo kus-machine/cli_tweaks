@@ -199,6 +199,10 @@ cli_tweaks_f1() {
 #   cli_tweaks_banner   the cat + the most-used commands; ~/.bashrc calls it
 #                       once per new terminal (see the guard there)
 #   keys                every command and hotkey, one screen-ish, via less
+#                       (keys --stay: less waits for q -- WezTerm's Ctrl+B ?)
+#
+# Both know the terminal: in WezTerm (outside tmux) its tab/pane keys replace
+# the tmux ones -- they are the same keys, mostly, but not all of them.
 # Turn the banner off with  CLI_TWEAKS_BANNER=0  in ~/.bashrc.local.
 #
 # Keys are written out the way they are printed on the keyboard (Ctrl+T,
@@ -220,6 +224,11 @@ __cli_tweaks_fg() {
 # __cli_tweaks_pad <text> <width>  -- spaces that pad <text> to <width>.
 # printf's %-20s counts BYTES, so "↑ →" (3 bytes per arrow) would come out
 # short; ${#text} counts characters in a UTF-8 locale.
+# __cli_tweaks_in_wezterm -- true in a WezTerm pane, not inside tmux there.
+__cli_tweaks_in_wezterm() {
+    [[ ${TERM_PROGRAM-} == WezTerm && -z ${TMUX-} ]]
+}
+
 __cli_tweaks_pad() {
     local n=$(( $2 - ${#1} ))
     (( n > 0 )) && printf '%*s' "$n" ''
@@ -291,6 +300,10 @@ cli_tweaks_banner() {
   `--'   `--'
 CAT
 
+    # WezTerm has its tabs and splits on the keys; with tmux they are commands.
+    local tabs_row=$'t  ta  tn  tk\ttmux · attach · new · kill'
+    __cli_tweaks_in_wezterm && tabs_row=$'Alt+T  Alt+\\  Alt+-\ttab · split right · below'
+
     # Right-hand column: rows 3..11 are "command<TAB>what it does"; row 12,
     # below the cat, is `keys` -- in the name's yellow, so it reads as "and
     # here is where the full instructions continue" rather than one more item.
@@ -302,7 +315,7 @@ CAT
         $'fin TEXT\tfind by name, from here'
         $'z PART\tjump to a visited folder'
         $'gs  gd  gl\tgit status · diff · log'
-        $'t  ta  tn  tk\ttmux · attach · new · kill'
+        "$tabs_row"
         $'Ctrl+T Ctrl+R Alt+C\tfzf: file · history · cd'
         $'↑  →  Alt+W\thistory · accept · copy'
         $'F1  ·  tldr CMD\texamples for a command'
@@ -341,14 +354,25 @@ CAT
 # (-R) and leaves the text on screen afterwards (-X).
 keys() {
     local head_c key_c desc_c reset=$'\e[0m'
+    local pager=(less -FRX) term=tmux want=
+    [[ ${1-} == --stay ]] && pager=(less -RX)
+    __cli_tweaks_in_wezterm && term=wezterm
     head_c=$(__cli_tweaks_fg 7aa2f7 111)
     key_c=$(__cli_tweaks_fg 73daca 79)
     desc_c=$(__cli_tweaks_fg a9b1d6 146)
 
     # "# Heading", blank lines, or "keys<TAB>description" -- an empty key
     # ("<TAB>more text") continues the description on the next line.
+    # "@only tmux" / "@only wezterm" ... "@all": a block for one terminal.
     local line k d
     while IFS= read -r line; do
+        if [[ $line == '@only '* ]]; then
+            want=${line#@only }; continue
+        elif [[ $line == @all ]]; then
+            want=; continue
+        elif [[ -n $want && $want != "$term" ]]; then
+            continue
+        fi
         if [[ $line == '# '* ]]; then
             printf '%s%s%s\n' "$head_c" "${line#'# '}" "$reset"
         elif [[ $line == *$'\t'* ]]; then
@@ -359,7 +383,7 @@ keys() {
         else
             printf '%s\n' "$line"
         fi
-    done <<'KEYS' | less -FRX
+    done <<'KEYS' | "${pager[@]}"
 # cli_tweaks · github.com/kus-machine/cli_tweaks
 
 # COMMANDS
@@ -399,6 +423,7 @@ Ctrl+← →	jump one word
 F1	examples for the command you are typing (tldr)
 	git commit + F1 -> git-commit · no page? opens man
 
+@only tmux
 # TMUX  ("Ctrl+B x" = press Ctrl+B, release, then x; the Alt keys need no Ctrl+B)
 Alt+1 … Alt+9	go to tab N (or click it in the top bar)
 Alt+T	new tab, in the current folder
@@ -419,5 +444,49 @@ select with the mouse	copied already · Ctrl+Shift+V pastes
 middle click	paste the current selection
 paste one line	its trailing newline is dropped: no MULTILINE
 Ukrainian layout	Ctrl+… and Alt+… keys work as on the Latin one
+@only wezterm
+# WEZTERM TABS  (no Ctrl+B needed)
+Alt+1 … Alt+9	go to tab N (or click it in the top bar)
+Alt+T	new tab, in the current folder
+Alt+N   Alt+K	rename the tab · close tab (asks)
+Ctrl+D	exit the shell = close this pane (the last one closes the tab)
+Ctrl+B w	list of all tabs · ↑ ↓ then Enter (or type its number)
+Ctrl+B <   Ctrl+B >	move the tab left / right
+
+# WEZTERM PANES  (Alt+… directly, or tmux-style: Ctrl+B, let go, then the key)
+Alt+\   Alt+-	split right · split below    = Ctrl+B |   Ctrl+B -
+Alt+← ↑ → ↓	move between panes
+Ctrl+Alt+← ↑ → ↓	resize the pane              = Ctrl+B Ctrl+← ↑ → ↓
+	(after Ctrl+B: keep pressing arrows, Esc when done)
+Alt+Z   Alt+X	zoom the pane and back · close the pane (asks)
+Ctrl+B q	numbers appear on the panes: press one to jump there
+Ctrl+B {	the same, but swaps this pane with the one you pick
+Ctrl+B !	move this pane out into its own tab
+Ctrl+B s   Ctrl+B S	workspaces (= tmux sessions): switch · new one
+	no detach: closing WezTerm ends them -- for that, run tmux in a tab
+
+# WEZTERM COPY & PASTE
+select with the mouse	copied already · Ctrl+V or right click pastes
+Ctrl+C	copies when something is selected, otherwise interrupts
+middle click	paste the current selection
+Ctrl+B y	copy the OUTPUT of the last command
+	try:  ls   then Ctrl+B y   and paste it anywhere
+4× click	select one command's whole output
+Ctrl+B Space	numbers appear over every hash / path / URL / IP:
+	type one -> it is copied.  try it on:  git log --oneline
+Ctrl+B u	the same for links only -> opens the one you pick
+Ctrl+click	open a link (a plain click only selects)
+Ctrl+B [	copy mode: arrows move, v starts selecting, y copies, Esc leaves
+paste one line	its trailing newline is dropped: no MULTILINE
+
+# WEZTERM SCROLL & MORE
+Shift+PgUp  Shift+PgDn	scroll back / forward (or the mouse wheel)
+Alt+PgUp  Alt+PgDn	jump to the previous / next command
+Ctrl+B /	search the scrollback · Enter = older match · Esc closes
+Ctrl+B o   Ctrl+B r	see-through on/off · reload the config
+Ctrl+B l   Ctrl+B :	launcher (tmux, bash without cli_tweaks) · command palette
+Ctrl+B ?	this list in its own tab (q closes it)
+Ukrainian layout	every key works as on the Latin one
+@all
 KEYS
 }

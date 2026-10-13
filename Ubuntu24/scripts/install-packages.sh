@@ -33,14 +33,16 @@ apt_install_tracked \
 # tldr pages: tealdeer (the `tldr` command) ships without them and only says
 # "run tldr --update" until they are downloaded (~30 MB, English only), so
 # fetch them once now -- as you, into ~/.cache/tealdeer. A cache dir we create
-# is ours to delete on uninstall --full; refresh it now and then with
+# is ours to delete on uninstall --full, and it is recorded BEFORE the
+# download (CLAUDE.md rule 5a), so a failed or interrupted one is still
+# cleaned up -- and retried on the next run, which looks for the pages
+# themselves rather than for the directory. Refresh now and then with
 # `tldr --update`.
 TLDR_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/tealdeer"
-if command -v tldr >/dev/null 2>&1 && [[ ! -d "$TLDR_CACHE" ]]; then
+if command -v tldr >/dev/null 2>&1 && [[ ! -d "$TLDR_CACHE/tldr-pages" ]]; then
+    [[ -e "$TLDR_CACHE" ]] || record_dir "$TLDR_CACHE" false
     info "downloading tldr pages"
-    if tldr --update >/dev/null; then
-        record_dir "$TLDR_CACHE" false
-    else
+    if ! tldr --update >/dev/null; then
         warn "tldr --update failed (offline?) - run it later by hand"
     fi
 fi

@@ -32,7 +32,7 @@ param(
     [switch]$Fonts,                        # FiraCode Nerd Font (per-user)
     [switch]$Starship,                     # starship + shared starship.toml
     [switch]$Configs,                      # pwsh profile + keys.txt + lesskey + bat themes
-    [switch]$WezTerm,                      # WezTerm (nightly) + windows/wezterm.lua
+    [switch]$WezTerm,                      # WezTerm (nightly) + shared/wezterm.lua
     [switch]$SetDefaultTerminal,           # Windows Terminal default profile -> pwsh7
     [switch]$SetWindowsDefaultTerminalApp  # opt-in: Windows "Default terminal app" -> WT
 )
@@ -351,7 +351,7 @@ try {
         # Nightly, not stable: the last stable release is from 2024-02 and the
         # config was tested against nightly (which upstream recommends).
         Winget-Install 'wez.wezterm.nightly'
-        Copy-Config (Join-Path $PSScriptRoot 'wezterm.lua') (Join-Path $HOME '.config\wezterm\wezterm.lua')
+        Copy-Config (Join-Path $Shared 'wezterm.lua') (Join-Path $HOME '.config\wezterm\wezterm.lua')
     }
 
     # --- Fonts (FiraCode Nerd Font, per-user) ----------------------------------

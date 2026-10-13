@@ -33,7 +33,7 @@ or harness default that says otherwise.
 2. **Portable configs live in `shared/`** (starship, alacritty, bat themes, lesskey). Platform
    installers *reference* them; never copy a shared file into a platform folder.
    If you change where a shared file lives, update every installer that reads it
-   (currently: `Ubuntu24/scripts/install-{starship,alacritty}.sh`,
+   (currently: `Ubuntu24/scripts/install-{starship,alacritty,wezterm,configs}.sh`,
    `windows/install.ps1`).
 3. **Per-shell files stay platform-local** because syntax differs:
    `Ubuntu24/configs/.bashrc` + `.bash_aliases` + `.blerc` (bash),
@@ -61,7 +61,10 @@ or harness default that says otherwise.
    still revertible.
 6. Keep installers **componentised** with matching switches across platforms:
    `packages`, `fonts`, `starship`, `configs`, and the terminal — `alacritty`
-   on Ubuntu, `wezterm` on Windows (+ `shell` on Windows for pwsh7, `blesh` on
+   or `wezterm` on Ubuntu — exactly one per run (`--all` refuses to run
+   without one), and the one you install becomes the default (Ctrl+Alt+T +
+   Files menu, `install-default-terminal.sh`); there is deliberately no
+   separate "default terminal" flag — `wezterm` on Windows (+ `shell` on Windows for pwsh7, `blesh` on
    Ubuntu — Windows/macOS get inline autosuggestions from
    PSReadLine/zsh-autosuggestions and need no component).
    SSH is a planned, separate, manual step — not auto-installed.
@@ -93,13 +96,14 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
 - fzf keybindings with an fd backend; UP/DOWN prefix history search
 - zoxide `z` (canonical, still being rolled out — see PARITY drift notes)
 - tmux helpers `t`/`ta`/`tk`/`tn` on Linux/macOS only (Windows has no tmux;
-  WezTerm's tabs/panes take the tmux keys there — `windows/wezterm.lua`)
+  WezTerm's tabs/panes take the tmux keys there — `shared/wezterm.lua`)
 - the startup banner + `keys` cheatsheet (Ubuntu + Windows; zsh still to do).
   **When you add or change a macro or hotkey, update `keys` (and the banner if
   it is one of the headline ones)** — Ubuntu: the heredoc + banner rows in
   `Ubuntu24/configs/.bash_aliases`; Windows: `windows/keys.txt` + the `$rows`
   of `cli_tweaks_banner` in the pwsh profile (and `HINTS` in `wezterm.lua`
-  for WezTerm keys) — otherwise the cheatsheet quietly lies. Spell keys as on the keyboard
+  for WezTerm keys). A `wezterm.lua` key also lives in the `@only wezterm`
+  block of Ubuntu's `keys` — otherwise the cheatsheet quietly lies. Spell keys as on the keyboard
   (`Ctrl+T`, `Alt+C`, `Shift+PgUp`, arrows as `← ↑ → ↓`), never `^T` / `M-c`.
   Keep the banner ≤ 78 columns. Pad with `__cli_tweaks_pad`, not
   `printf %-Ns`: bash's printf pads by BYTES, so arrows misalign.
@@ -212,12 +216,31 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
 - **Pasting drops one trailing newline** (`.blerc`, advice on
   `ble/widget/bracketed-paste.proc`), so a triple-clicked line does not open
   ble.sh's MULTILINE mode.
+- **WezTerm on Ubuntu vs ble.sh.** The wezterm package's
+  `/etc/profile.d/wezterm.sh` is bash-preexec (PROMPT_COMMAND + DEBUG trap),
+  sourced by the login shell BEFORE `.bashrc` loads ble.sh — `wezterm.lua`
+  sets `WEZTERM_SHELL_SKIP_ALL=1` on Linux, and `.bashrc` sends the OSC 133
+  marks itself with `blehook PRECMD`/`PREEXEC` (before `ble-attach`). On Linux,
+  `wezterm.lua` also sends every unbound Ctrl/Alt+letter by its physical key,
+  so the Ukrainian layout still gets `Ctrl+R`, `Alt+C` (Windows' console does
+  that on its own). `Ctrl+B ?` runs `keys --stay` from a plain `bash -c`.
+- **`uninstall.sh --full` never runs `apt-get autoremove`** and never removes
+  a package blindly: each of ours is simulated first (`apt-get -s`, no root
+  needed) and kept if it would take a non-ours package along; only orphans
+  that OUR removal creates go. The old `autoremove -y` would have taken 21
+  NVIDIA driver packages on SF-WS1181. Test it with `--dry-run`, or in a fake
+  `$HOME` with a logging `sudo` stub first on `PATH`.
 - **Alacritty is not where autosuggestions live.** A terminal emulator cannot
   draw them; the line editor does. Grey-text bugs are ble.sh/`.bashrc` bugs.
 - **Alacritty needs working OpenGL/GLX.** A `BadValue … BadAttribute` startup
   error is a GPU-driver fault, not a config fault — check `glxinfo -B` and
   `nvidia-smi` (a driver upgrade needs a reboot before the kernel module
-  matches the userspace libs). Don't debug the TOML for this.
+  matches the userspace libs). Don't debug the TOML for this. WezTerm's
+  version of the same fault: the window flashes and closes, and
+  `wezterm start` prints `egl Initialize: BAD_ACCESS` (2026-10-13:
+  unattended-upgrades had moved the NVIDIA libs to 580.178 under a running
+  580.173 kernel module — `nvidia-smi` says `Driver/library version
+  mismatch`; a reboot fixes it).
 - The Windows box was reset by hand on 2026-10-11: no cli_tweaks tools, but
   **PowerShell 7 is installed** (kept); pwsh7 is otherwise installed by
   `windows/install.ps1 -Shell`. The pwsh7 profile path is

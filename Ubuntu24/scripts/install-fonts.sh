@@ -13,7 +13,7 @@ apt_install_tracked wget unzip fontconfig
 mkdir -p "$FONT_DIR"
 
 info "downloading FiraCode Nerd Font"
-wget -q --show-progress -O "$TMP_DIR/FiraCode.zip" \
+wget -q --show-progress --no-hsts -O "$TMP_DIR/FiraCode.zip" \
     https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
 
 info "installing into $FONT_DIR"

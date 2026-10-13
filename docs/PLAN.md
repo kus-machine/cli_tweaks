@@ -11,7 +11,7 @@ _Last updated: 2026-10-05 (zsh trial planned)._
 | # | Decision | Rationale |
 |---|----------|-----------|
 | 1 | **Windows = native PowerShell 7 only** (no WSL, no tmux) | Simpler; user wants a native Windows shell, not a Linux VM |
-| 2 | **Alacritty on Linux/macOS, WezTerm on Windows** (was: Alacritty everywhere; changed 2026-10-12) | Windows has no tmux, and Alacritty alone has no tabs/panes — it "integrated badly". WezTerm has both built in, takes the tmux keys, and won a side-by-side trial against Windows Terminal and Rio |
+| 2 | **WezTerm on Windows, Alacritty on macOS, either on Ubuntu** (was: Alacritty everywhere; changed 2026-10-12) | Windows has no tmux, and Alacritty alone has no tabs/panes — it "integrated badly". WezTerm has both built in, takes the tmux keys, and won a side-by-side trial against Windows Terminal and Rio. Ubuntu (2026-10-12): the owner wants to try both, so `install.sh` makes you name one (`--all --alacritty` / `--all --wezterm`), and the one you install becomes the default terminal (Ctrl+Alt+T, Files menu) — no separate flag, owner 2026-10-13; one `shared/wezterm.lua` serves Windows and Ubuntu; in WezTerm, tmux stays installed but is not started |
 | 3 | **Remote/Pi = lightweight bash profile** (fuzzy + macros, no GUI/fonts) | Pi is headless; fast to push over SSH |
 | 4 | **`shared/` holds portable configs** (starship, alacritty, ssh) | De-duplicate; platforms reference, never copy-in |
 | 5 | **Adopt zoxide as canonical** and wire it everywhere | It was documented but never actually wired anywhere |
@@ -284,7 +284,11 @@ nushell / pwsh everywhere (rejected: new language / foreign on Unix).
    `uninstall.ps1 -Full -WhatIf`, then merge to main. On the Ubuntu laptop:
    finish the interrupted `--packages` (xclip is missing), then `--configs`
    and check the pristine store holds `~/.bashrc.bak` / `~/.bash_aliases.bak`.
-1. **Ubuntu installer safety fixes** — listed in docs/REMINDERS.md.
+1. **Ubuntu installer safety fixes** — the uninstaller half was done
+   2026-10-12 (apt simulation, record-before-act, repeat-safe); the install
+   half is still in docs/REMINDERS.md.
+1a. **Try WezTerm on Ubuntu** (`./install.sh --wezterm --configs`) and walk
+   the WezTerm rows of `keys`; then decide whether Ubuntu keeps both.
 2. **Port the startup banner + `keys` to zsh** (pwsh done 2026-10-12).
    Consider `shared/lesskey` on Ubuntu too (same Ukrainian-layout problem).
 3. **macOS rewrite to parity** (needs a Mac to test):

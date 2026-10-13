@@ -8,7 +8,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Capability            | Tool / mechanism                    | Ubuntu24 | macOS (zsh) | Windows (pwsh7) |
 |-----------------------|-------------------------------------|:--------:|:-----------:|:---------------:|
 | Prompt                | **starship** (`shared/starship.toml`)| ✅       | 🟡 manual PS1| ✅ (newline fix 2026-10-12) |
-| Terminal emulator     | **alacritty** (`shared/alacritty.toml`); Windows: **WezTerm** (`windows/wezterm.lua`) | ✅ | 📝 | ✅ WezTerm |
+| Terminal emulator     | **alacritty** (`shared/alacritty.toml`) or **WezTerm** (`shared/wezterm.lua`); Ubuntu: chosen at install (`--alacritty` / `--wezterm`) | ✅ Alacritty · 🟡 WezTerm built, not eyeballed | 📝 | ✅ WezTerm |
 | Font                  | FiraCode Nerd Font                   | ✅       | 📝          | ✅              |
 | `ls` w/ icons         | **eza** — `l` `la` `lss`             | ✅       | 🟡 partial  | ✅              |
 | `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | 🟡 untested |
@@ -22,7 +22,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | History (big, dedup, prefix ↑↓) | shell history opts        | ✅       | 🟡 blind, untested | ✅ (PSReadLine) |
 | git shortcuts         | `gs` `gd` `gl`                       | ✅       | ✅ gs/gd/gl/gl1| ✅ (`gl` alias removed, checked 2026-10-12) |
 | System monitor        | **btop** (`top`/`htop`)             | ✅       | 📝          | ✅ (btop4win)   |
-| Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅       | ✅          | ✅ WezTerm tabs/panes, tmux keys (no detach) |
+| Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅ (WezTerm: its own tabs/panes, tmux keys; tmux still there) | ✅          | ✅ WezTerm tabs/panes, tmux keys (no detach) |
 | Copy to clipboard     | tmux copy-pipe + `Alt+W` on the line | ✅ xclip | 🟡 pbcopy, untested | ✅ WezTerm: select = copy, Ctrl+C/V, Ctrl+B y (no Alt+W) |
 | Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | 🟡 blind, untested | ✅       |
 | Word-delete keys      | Ctrl/Alt+Backspace ⌫word, Ctrl+Del word⌦ | ✅ ble.sh + readline fallback | 🟡 blind, untested | ✅ PSReadLine, pinned |
@@ -97,12 +97,14 @@ several things that looked fine but were not:
 
 ## Known drift / cleanup to reconcile
 
-- **Terminal differs by design**: Alacritty + tmux on Linux/macOS, WezTerm on
-  Windows (PLAN decision 2). The WezTerm keys mirror tmux; Windows also has
-  direct `Alt+\` `Alt+-` `Alt+Z` `Alt+X` / `Ctrl+Alt+arrows` pane keys that
-  tmux on Ubuntu does not have yet — add them there if they stick.
+- **Terminal differs by design**: Alacritty + tmux on macOS, WezTerm on
+  Windows, either on Ubuntu (PLAN decision 2). The WezTerm keys mirror tmux;
+  WezTerm also has direct `Alt+\` `Alt+-` `Alt+Z` `Alt+X` / `Ctrl+Alt+arrows`
+  pane keys that tmux does not have yet — add them there if they stick.
 - **`keys` lives in two places**: Ubuntu's heredoc in `.bash_aliases`, Windows'
-  `windows/keys.txt`. Same format, different content (tmux vs WezTerm rows).
+  `windows/keys.txt`. Same format. Ubuntu's has an `@only tmux` and an
+  `@only wezterm` block; the WezTerm one repeats Windows' tab/pane/copy rows —
+  change both when a `wezterm.lua` key changes.
 - **`shared/lesskey`** is wired on Windows only; Ubuntu's `less` has the same
   Ukrainian-layout problem.
 

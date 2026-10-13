@@ -33,10 +33,19 @@ die()   { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # jq is how we read/write the manifest. It is small and not installed by
 # default on Ubuntu 24 Desktop, so bootstrap it before anything else.
+#
+# jq is needed to WRITE the manifest, so it cannot be recorded before it is
+# installed. Instead it is noted here and manifest_init records it as ours
+# (preexisting=false) right after, so uninstall --full can remove it again.
+CT_JQ_BOOTSTRAPPED=0
 ensure_jq() {
     command -v jq >/dev/null 2>&1 && return 0
     info "installing jq (needed to track what this installer changes)"
-    sudo apt-get install -y jq >/dev/null
+    # On a fresh image the package lists may be empty; --fonts or --configs
+    # alone never run install-packages.sh's `apt-get update`.
+    sudo apt-get install -y jq >/dev/null ||
+        { sudo apt-get update >/dev/null && sudo apt-get install -y jq >/dev/null; }
+    CT_JQ_BOOTSTRAPPED=1
 }
 
 # --- manifest --------------------------------------------------------------
@@ -44,8 +53,17 @@ ensure_jq() {
 manifest_init() {
     ensure_jq
     mkdir -p "$STATE_DIR" "$PRISTINE_DIR"
-    [[ -f "$MANIFEST" ]] && return 0
+    if [[ ! -f "$MANIFEST" ]]; then
+        _manifest_create
+    fi
+    if [[ $CT_JQ_BOOTSTRAPPED -eq 1 ]]; then
+        CT_JQ_BOOTSTRAPPED=0
+        manifest_has packages jq ||
+            manifest_add packages '{"id": "jq", "manager": "apt", "preexisting": false}'
+    fi
+}
 
+_manifest_create() {
     jq -n --arg now "$(date -Is)" '{
         version:    1,
         created_at: $now,
@@ -54,7 +72,9 @@ manifest_init() {
         packages:   [],
         fonts:      [],
         bins:       [],
-        dirs:       []
+        dirs:       [],
+        sysfiles:   [],
+        alternatives: []
     }' > "$MANIFEST"
 }
 
@@ -121,6 +141,18 @@ deploy_file() {
     if jq -e --arg id "$dst" '.files[]? | select(.id == $id)' "$MANIFEST" >/dev/null 2>&1; then
         pristine="$(jq -r --arg id "$dst" \
             '.files[] | select(.id == $id) | (.pristine // "")' "$MANIFEST")"
+    elif [[ -e "$dst" && -f "$pristine" ]]; then
+        # Not in the manifest, but the pristine store already has this file:
+        # an uninstall --full ran (it drops the manifest, keeps the store) and
+        # you are installing again. Never overwrite the store's copy -- unless
+        # the file has changed since, then THAT is your newer original, and
+        # the old copy is kept beside it.
+        # (A file identical to the repo's is our own deploy, not an original.)
+        if ! cmp -s "$dst" "$pristine" && ! cmp -s "$dst" "$src"; then
+            mv "$pristine" "${pristine}.prev.$(date +%Y%m%d_%H%M%S)"
+            cp -a "$dst" "$pristine"
+            info "captured changed original $dst -> $pristine (older copy kept as .prev.*)"
+        fi
     elif [[ -e "$dst" ]]; then
         # Not in the manifest, but a pre-manifest installer may have run here
         # already: then $dst is an OLD cli_tweaks deploy, and your real
@@ -143,10 +175,13 @@ deploy_file() {
         pristine=""
     fi
 
-    mkdir -p "$(dirname "$dst")"
-    install -m 644 "$src" "$dst"
+    # Record BEFORE installing (CLAUDE.md rule 5a): interrupted after this
+    # line, the next run finds the entry and keeps the pristine value; the
+    # other way round it would capture OUR file as your original.
     manifest_add files "$(jq -n --arg id "$dst" --arg p "$pristine" \
         '{id: $id, pristine: (if $p == "" then null else $p end)}')"
+    mkdir -p "$(dirname "$dst")"
+    install -m 644 "$src" "$dst"
     ok "$dst"
 }
 
@@ -258,4 +293,33 @@ record_dir() {
     else
         manifest_add dirs "$(jq -n --arg id "$1" '{id: $id}')"
     fi
+}
+
+# record_sysfile <path>
+#
+# A system file outside $HOME that an installer writes with sudo (an apt
+# source, a keyring). Call it BEFORE writing: a file already there is
+# preexisting and uninstall --full leaves it; one that is not is ours to
+# delete. The first record wins, so on a re-run our own file stays ours.
+record_sysfile() {
+    local pre=false
+    manifest_has sysfiles "$1" && return 0
+    [[ -e "$1" ]] && pre=true
+    manifest_add sysfiles "$(jq -n --arg id "$1" --argjson pre "$pre" \
+        '{id: $id, preexisting: $pre}')"
+}
+
+# record_alternative <name>
+#
+# Remembers how a Debian alternative (update-alternatives) was set BEFORE we
+# first touched it: "auto" (the highest priority wins) or "manual" + the path
+# someone pinned. Call it BEFORE `update-alternatives --set`. The first record
+# wins -- on a re-run the current value is our own choice, not the original.
+record_alternative() {
+    local name="$1" mode value
+    manifest_has alternatives "$name" && return 0
+    mode="$(update-alternatives --query "$name" 2>/dev/null | awk '/^Status:/ { print $2 }')"
+    value="$(update-alternatives --query "$name" 2>/dev/null | awk '/^Value:/ { print $2 }')"
+    manifest_add alternatives "$(jq -n --arg id "$name" --arg m "${mode:-auto}" --arg v "$value" \
+        '{id: $id, mode: $m, value: (if $v == "" then null else $v end)}')"
 }

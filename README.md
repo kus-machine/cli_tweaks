@@ -12,7 +12,7 @@ everywhere.
 - **Prompt:** starship (`shared/starship.toml`)
 - **Terminal:** Tokyo Night + FiraCode Nerd Font — Alacritty + tmux on
   Linux/macOS (`shared/alacritty.toml`), WezTerm on Windows with the same tab
-  and pane keys (`windows/wezterm.lua`)
+  and pane keys (`shared/wezterm.lua`)
 - **Fuzzy search:** fzf + fd — `Ctrl+T` files, `Ctrl+R` history, `Alt+C` cd
 - **Inline autosuggestions:** grey completion-as-you-type from history —
   ble.sh (bash), zsh-autosuggestions (zsh), PSReadLine prediction (pwsh)

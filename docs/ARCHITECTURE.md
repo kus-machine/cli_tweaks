@@ -12,6 +12,7 @@ cli_tweaks/
 │   └── ARCHITECTURE.md      # this file
 ├── shared/                  # portable, platform-agnostic configs (single source)
 │   ├── alacritty.toml       # terminal — used by Linux/macOS
+│   ├── wezterm.lua          # terminal with tabs + panes — Windows, and Ubuntu --wezterm
 │   ├── starship.toml        # prompt   — used by every shell
 │   ├── lesskey              # less's keys on the Ukrainian layout (Windows so far)
 │   └── bat/themes/          # bat colour themes (tokyonight_night = default)
@@ -26,7 +27,6 @@ cli_tweaks/
 └── windows/                 # Windows 11 — native PowerShell 7 + WezTerm
     ├── install.ps1          # winget-based, per-user, flag/switch model
     ├── uninstall.ps1        # manifest-driven revert (-Cosmetic / -Full)
-    ├── wezterm.lua          # terminal: tabs + panes (replaces Alacritty + tmux here)
     ├── keys.txt             # the `keys` / Ctrl+B ? cheatsheet (Ubuntu: in .bash_aliases)
     └── Microsoft.PowerShell_profile.ps1
 ```
@@ -48,7 +48,7 @@ are tracked in [PLAN.md](PLAN.md), not present in the tree yet.
 
 3. **Installers are componentised and idempotent-ish.** Each platform exposes
    the same component switches (`packages`, `fonts`, `starship`, `configs`,
-   plus the terminal: `alacritty` on Ubuntu, `wezterm` on Windows; Windows adds
+   plus the terminal: `alacritty` and/or `wezterm` on Ubuntu (named at install), `wezterm` on Windows; Windows adds
    `shell` for pwsh7, Ubuntu adds `blesh` for the inline autosuggestions bash
    lacks natively). A user file is captured **once**
    before it is first overwritten (Ubuntu: `~/.local/state/cli_tweaks/pristine/`;
@@ -69,6 +69,6 @@ are tracked in [PLAN.md](PLAN.md), not present in the tree yet.
   `install.ps1 -Shell` installs pwsh7 if missing; the profile lands at
   `~/Documents/PowerShell/profile.ps1`, its data files (`keys.txt`, `lesskey`)
   in `~/.config/cli_tweaks/`.
-- **Terminal: Alacritty on Linux/macOS, WezTerm on Windows** (changed
+- **Terminal: Alacritty on macOS, WezTerm on Windows, either on Ubuntu** (changed
   2026-10-12, see PLAN.md decision 2). Windows has no tmux, and Alacritty has
   no tabs/panes of its own; WezTerm brings both, with the tmux keys.
