@@ -17,6 +17,19 @@
 
 
 # ---------------------------------------------------------------------------
+# History shared by every open window
+# ---------------------------------------------------------------------------
+# Off by default: each shell then writes its commands to ~/.bash_history only
+# on EXIT and reads the file only at START, so Ctrl+R / Up in one window could
+# not find what you had just typed in another until that one was closed.
+# With this on, ble.sh appends every command to the file as soon as it runs and
+# merges in the other shells' new lines before each prompt. Up in a window now
+# also walks through commands from the other windows -- that is the point.
+# (The non-ble.sh fallback for the same thing is in ~/.bashrc.)
+bleopt history_share=1
+
+
+# ---------------------------------------------------------------------------
 # Inline autosuggestion (the feature we came for)
 # ---------------------------------------------------------------------------
 bleopt complete_auto_complete=1   # suggest while typing

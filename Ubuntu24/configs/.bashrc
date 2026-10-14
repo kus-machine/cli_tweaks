@@ -48,6 +48,18 @@ shopt -s histappend
 HISTSIZE=1000000
 HISTFILESIZE=2000000
 
+# One history for every open window. Plain bash writes ~/.bash_history only
+# when the shell EXITS, and reads it only when a shell STARTS -- so a command
+# typed in one window was invisible to Ctrl+R / Up in every other window until
+# the first one was closed (and then only in windows opened after that).
+# With ble.sh this is `bleopt history_share=1` in ~/.blerc (ble.sh keeps its
+# own history and ignores PROMPT_COMMAND tricks). Without ble.sh: append each
+# command to the file right after it runs (-a) and pull in what other shells
+# appended since (-n), before every prompt.
+if [[ ! ${BLE_VERSION-} ]]; then
+    PROMPT_COMMAND="history -a; history -n${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+fi
+
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize

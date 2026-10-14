@@ -19,7 +19,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Inline autosuggestion | grey text as you type                | ✅ ble.sh| ✅ zsh-autosuggestions | ✅ PSReadLine |
 | Input-line colours    | Tokyo Night faces (`Ubuntu24/configs/.blerc`) | ✅ | 📝          | 📝              |
 | Smart cd              | **zoxide** (`z`, `zi`)               | ✅       | 🟡 *not wired* | ✅          |
-| History (big, dedup, prefix ↑↓) | shell history opts        | ✅       | 🟡 blind, untested | ✅ (PSReadLine) |
+| History (big, dedup, prefix ↑↓, shared live) | shell history opts        | ✅       | 🟡 blind, untested | ✅ (PSReadLine) |
 | git shortcuts         | `gs` `gd` `gl`                       | ✅       | ✅ gs/gd/gl/gl1| ✅ (`gl` alias removed, checked 2026-10-12) |
 | System monitor        | **btop** (`top`/`htop`)             | ✅       | 📝          | ✅ (btop4win)   |
 | Multiplexer           | **tmux** (`t`/`ta`/`tk`/`tn`)       | ✅ (WezTerm: its own tabs/panes, tmux keys; tmux still there) | ✅          | ✅ WezTerm tabs/panes, tmux keys (no detach) |
