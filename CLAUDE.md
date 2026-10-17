@@ -254,6 +254,22 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   `starship init` / `zoxide init` go through `__ct_cached_init` (cached in
   `%LOCALAPPDATA%\cli_tweaks\cache`). Measure with
   `$env:CLI_TWEAKS_TIMING=1; pwsh` before and after a change.
+- **The pwsh profile must force the console to UTF-8** (`[Console]::OutputEncoding`
+  and `::InputEncoding` near the top, guarded by `-not IsOutputRedirected`).
+  Without it the console falls back to the legacy OEM code page, so typing on
+  the Ukrainian (or any non-Latin) layout echoes `?????` and Nerd Font /
+  box-drawing glyphs break. Control keys (Ctrl/Alt+letter) still work — they
+  are control codes, not text, so "shortcuts fine, letters are `?`" points
+  straight here. bash on Ubuntu gets this from the locale, so this is
+  Windows-only.
+- **starship's prompt silently kills zoxide's directory recording.** zoxide's
+  generated pwsh init hooks by WRAPPING the `prompt` function, but the profile's
+  fallback prompt and then starship both REPLACE `prompt` outright (both defined
+  after the zoxide block), so the wrapper is lost: the database never fills and
+  `z foo` matches nothing. The profile records on every `cd` via
+  `$ExecutionContext.SessionState.InvokeCommand.LocationChangedAction` instead —
+  prompt-independent, so it survives whoever owns the prompt. Re-check this if
+  the prompt wiring is ever reordered.
 - **starship's `format` must not end with a newline** (`shared/starship.toml`,
   last line ends with `\`): bash's `$(...)` strips it, pwsh prints it and the
   cursor lands on the line below the `▸`.

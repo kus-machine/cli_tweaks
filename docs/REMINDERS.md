@@ -56,22 +56,32 @@ The WezTerm + pwsh setup was hand-tested in a trial folder; the repo version
 `shared/lesskey`, the `shared/starship.toml` newline fix) has only been
 parse-checked and load-tested, never installed for real.
 
-0. **First remove the trial's traces**, or the install will record them as
-   `preexisting` and uninstall will never remove them: close WezTerm, delete
-   `C:\Users\pawla\cli_tweaks_trial\` and `~\.local\share\wezterm`, and
-   unregister the 18 `FiraCodeNerdFont*` fonts the trial re-registered
-   (files in `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, values under
-   `HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts`). PowerShell 7
-   stays (it predates this and is correctly `preexisting`).
-1. From **Windows PowerShell 5.1**: `cd windows; ./install.ps1 -All`
-   (UAC prompts for the MSI packages are expected). Read the manifest it wrote.
-2. Open WezTerm and walk the checklist in `windows/README.md` ("After
+**Progress 2026-10-17 (on the Windows box):** steps 0, 1 and the `-WhatIf` half
+of 3 are DONE. Trial traces removed and the manifest fixed so the 18 fonts +
+both WezTerm dirs are now `preexisting:false` (ours); `uninstall.ps1 -Full
+-WhatIf` confirmed it now reverts configs, fonts (files + registry), packages
+and `Programs\WezTerm`, keeping PowerShell 7. Two profile bugs found while
+eyeballing and fixed (uncommitted): console not forced to UTF-8 (Ukrainian
+typed as `?????`) and zoxide's hook killed by starship's prompt (`z` never
+matched) — see the new CLAUDE.md gotchas. Left: the owner's visual checklist
+(step 2), the real teardown/rebuild (step 3 below), then merge.
+
+0. ✅ DONE. Trial traces removed (`cli_tweaks_trial`, `~\.local\share\wezterm`,
+   the 18 `FiraCodeNerdFont*` files + HKCU values), manifest surgery dropped
+   the stale `preexisting` entries, and `install.ps1 -Fonts -WezTerm` re-recorded
+   them as ours. PowerShell 7 stays (correctly `preexisting`).
+1. ✅ DONE (as `-Configs -WezTerm -Fonts`, pwsh7 — no 5.1/UAC needed since the
+   tools were already installed from the earlier 2026-10-15 run). Manifest read
+   back and verified.
+2. **Owner, in WezTerm:** walk the checklist in `windows/README.md` ("After
    installing"): banner, `keys` / Ctrl+B ?, Alt/Ctrl+B pane keys, Ctrl+B y,
    starship (cursor right after `▸`, red on failure), Ctrl+T/Ctrl+R/Alt+C
-   with previews, `z`, F1, `alert`, `less` keys on the Ukrainian layout.
-   `$env:CLI_TWEAKS_TIMING=1; pwsh` should show ~0.2 s.
-3. `./uninstall.ps1 -Full -WhatIf`, then `-Cosmetic` twice for real, then
-   `./install.ps1 -Configs` again (manifest bookkeeping across re-runs).
+   with previews, **Ukrainian letters type correctly (not `?????`)**, **`z`
+   jumps after a couple of `cd`s**, F1, `alert`, `less` keys on the Ukrainian
+   layout. `$env:CLI_TWEAKS_TIMING=1; pwsh` (was ~0.47 s here, starship ~0.37 s
+   of it — over the ~0.2 s target, worth a look).
+3. `-WhatIf` done. Still to do for real: `./uninstall.ps1 -Cosmetic` twice,
+   then `./install.ps1 -Configs` again (manifest bookkeeping across re-runs).
 4. If all good: merge `wezterm_dev` into `main`, update PARITY.md's
    "not eyeballed" cells.
 5. Then delete `C:\Users\pawla\cli_tweaks_cleanup_20261011_224657\`

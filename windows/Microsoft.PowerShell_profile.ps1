@@ -20,6 +20,22 @@
 $ErrorActionPreference = 'Continue'
 
 # ---------------------------------------------------------------------------
+# UTF-8 on the console. pwsh reads THIS file as UTF-8 already, but the console
+# the shell talks to still defaults to the legacy OEM code page -- so typing
+# on the Ukrainian (or any non-Latin) layout echoes "?????" and Nerd Font /
+# box-drawing glyphs come out wrong. Force UTF-8 both ways. Guarded: setting
+# InputEncoding throws when input is redirected (e.g. piped). zoxide flips
+# OutputEncoding per call and restores it, so this stays the steady state.
+# ---------------------------------------------------------------------------
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+if (-not [Console]::IsOutputRedirected) {
+    try {
+        [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+        [Console]::InputEncoding  = [System.Text.UTF8Encoding]::new($false)
+    } catch { }
+}
+
+# ---------------------------------------------------------------------------
 # Startup timing (CLI_TWEAKS_TIMING=1 prints the table at the end)
 # ---------------------------------------------------------------------------
 $global:__ct_sw    = [Diagnostics.Stopwatch]::StartNew()
@@ -134,9 +150,20 @@ if (-not [Console]::IsOutputRedirected) {
     Set-PSReadLineKeyHandler -Key Ctrl+Delete     -Function KillWord
     Set-PSReadLineKeyHandler -Key RightArrow -Function ForwardChar   # accepts the suggestion at line end
     Set-PSReadLineKeyHandler -Key End        -Function EndOfLine
-    # Ctrl+D on an empty line exits the shell (closes the pane), like bash;
-    # on a non-empty line it deletes the character under the cursor.
-    Set-PSReadLineKeyHandler -Key Ctrl+d     -Function DeleteCharOrExit
+    # Ctrl+D: on an empty line exit the shell (closes the WezTerm pane), like
+    # bash's EOF; on a non-empty line delete the char under the cursor.
+    # PSReadLine's built-in DeleteCharOrExit does NOT reliably exit pwsh here
+    # (its "exit" half is a no-op on Windows), so run `exit` explicitly.
+    Set-PSReadLineKeyHandler -Key Ctrl+d -BriefDescription 'delete char or exit' -ScriptBlock {
+        $l = $null; $c = $null
+        [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$l, [ref]$c)
+        if ($l.Length -eq 0) {
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert('exit')
+            [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+        } else {
+            [Microsoft.PowerShell.PSConsoleReadLine]::DeleteChar()
+        }
+    }
 
     # Enter: run the line, then tell the terminal "command output starts here"
     # (OSC 133;C). With that, WezTerm knows exactly which text is the OUTPUT of
@@ -241,10 +268,20 @@ __ct_mark 'fzf (PSFzf)'
 
 # ---------------------------------------------------------------------------
 # zoxide  --  `z <part of a path>` jumps to a folder you visited, `zi` picks
-# one with fzf. Its database lives in .\zoxide (_ZO_DATA_DIR above).
+# one with fzf (interactive). The database is zoxide's default location,
+# %LOCALAPPDATA%\zoxide.
 # ---------------------------------------------------------------------------
 if (Get-Command zoxide -ErrorAction Ignore) {
     . (__ct_cached_init 'zoxide' @('init', 'powershell'))
+    # zoxide's generated hook records visited dirs by WRAPPING `prompt`. But the
+    # starship block further down REPLACES `prompt` outright (so does the
+    # fallback prompt), which silently kills the recording -- then the database
+    # stays empty and `z foo` never matches. Record on every directory change
+    # instead: LocationChangedAction is prompt-independent, so it survives
+    # whoever owns the prompt. __zoxide_hook only adds when the path changed.
+    $ExecutionContext.SessionState.InvokeCommand.LocationChangedAction = {
+        if (Get-Command __zoxide_hook -ErrorAction Ignore) { __zoxide_hook }
+    }
 }
 __ct_mark 'zoxide'
 
