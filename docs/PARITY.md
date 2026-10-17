@@ -8,7 +8,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Capability            | Tool / mechanism                    | Ubuntu24 | macOS (zsh) | Windows (pwsh7) |
 |-----------------------|-------------------------------------|:--------:|:-----------:|:---------------:|
 | Prompt                | **starship** (`shared/starship.toml`)| ✅       | 🟡 manual PS1| ✅ (newline fix 2026-10-12) |
-| Terminal emulator     | **alacritty** (`shared/alacritty.toml`) or **WezTerm** (`shared/wezterm.lua`); Ubuntu: chosen at install (`--alacritty` / `--wezterm`) | ✅ Alacritty · 🟡 WezTerm built, not eyeballed | 📝 | ✅ WezTerm |
+| Terminal emulator     | **alacritty** (`shared/alacritty.toml`) or **WezTerm** (`shared/wezterm.lua`); Ubuntu: chosen at install (`--alacritty` / `--wezterm`) | ✅ Alacritty · ✅ WezTerm | 📝 | ✅ WezTerm |
 | Font                  | FiraCode Nerd Font                   | ✅       | 📝          | ✅              |
 | `ls` w/ icons         | **eza** — `l` `la` `lss`             | ✅       | 🟡 partial  | ✅              |
 | `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | ✅ (seen 2026-10-18) |
@@ -60,8 +60,8 @@ dirs, Ctrl+Alt+T back to Alacritty, manifest + pristine store untouched; the
 repeats changed nothing. One leftover fixed that day: Nautilus' `__pycache__`
 for the extension. Then `./install.sh --configs --starship --wezterm` brought
 back the same files (checksums) and the same manifest. `--full` was read as
-`--dry-run` only (it would take WezTerm itself). The WezTerm row stays 🟡
-until the owner has looked at it.
+`--dry-run` only (it would take WezTerm itself). WezTerm itself eyeballed by
+the owner the same day; the branch was then merged into `main`.
 
 SSH config and a Raspberry Pi / remote profile are planned separately — see
 [PLAN.md](PLAN.md).

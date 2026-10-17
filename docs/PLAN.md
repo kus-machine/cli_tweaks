@@ -279,10 +279,9 @@ nushell / pwsh everywhere (rejected: new language / foreign on Unix).
   end-to-end** — that is step 0 below / docs/REMINDERS.md.
 
 ### 📝 Next up (priority order)
-0. **Merge branch `wezterm_dev`.** Windows validated 2026-10-18; on the
-   Ubuntu laptop the uninstall/reinstall cycle passed the same day. Left: the
-   owner's look at WezTerm on Ubuntu, then fast-forward `main`
-   (docs/REMINDERS.md item 2.4).
+0. ✅ **Branch `wezterm_dev` merged into `main`** (2026-10-18), validated on
+   Windows and on the Ubuntu laptop. Windows leftovers: docs/REMINDERS.md
+   item 2.
 1. **Ubuntu installer safety fixes** — the uninstaller half was done
    2026-10-12 (apt simulation, record-before-act, repeat-safe); the install
    half is still in docs/REMINDERS.md.

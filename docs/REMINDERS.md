@@ -59,73 +59,19 @@ repeat-safe, empty dirs pruned, pristine copy reused after `--full`). Left:_
 
 ---
 
-## 2. Windows: validate branch `wezterm_dev`, then merge
+## 2. Windows leftovers after the `wezterm_dev` merge
 
-_Added 2026-10-12. The owner had no time to test; everything was pushed on
-their go-ahead. Do this **on the Windows box**._
+_`wezterm_dev` was validated on Windows and Ubuntu and merged into `main` on
+2026-10-18 (git history has the full record). Do these **on the Windows box**._
 
-The WezTerm + pwsh setup was hand-tested in a trial folder; the repo version
-(`windows/install.ps1`, `uninstall.ps1`, profile, `wezterm.lua` — moved to
-`shared/wezterm.lua` on 2026-10-12 and given Linux branches, `keys.txt`,
-`shared/lesskey`, the `shared/starship.toml` newline fix) has only been
-parse-checked and load-tested, never installed for real.
-
-**Progress 2026-10-17 (on the Windows box):** steps 0, 1 and the `-WhatIf` half
-of 3 are DONE. Trial traces removed and the manifest fixed so the 18 fonts +
-both WezTerm dirs are now `preexisting:false` (ours); `uninstall.ps1 -Full
--WhatIf` confirmed it now reverts configs, fonts (files + registry), packages
-and `Programs\WezTerm`, keeping PowerShell 7. Two profile bugs found while
-eyeballing and fixed (uncommitted): console not forced to UTF-8 (Ukrainian
-typed as `?????`) and zoxide's hook killed by starship's prompt (`z` never
-matched) — see the new CLAUDE.md gotchas. **2026-10-18:** Ctrl/Alt+letter
-keys fixed for both layouts (`__ct_twin_keys`, verified in WezTerm: Ctrl+D,
-Ctrl+R, Ctrl+T, Alt+C) and the stale starship cache rebuilt (continuation
-prompt `∙`, not `ÔêÖ`). Left: the owner's visual checklist
-(step 2), the real teardown/rebuild (step 3 below), then merge.
-
-0. ✅ DONE. Trial traces removed (`cli_tweaks_trial`, `~\.local\share\wezterm`,
-   the 18 `FiraCodeNerdFont*` files + HKCU values), manifest surgery dropped
-   the stale `preexisting` entries, and `install.ps1 -Fonts -WezTerm` re-recorded
-   them as ours. PowerShell 7 stays (correctly `preexisting`).
-1. ✅ DONE (as `-Configs -WezTerm -Fonts`, pwsh7 — no 5.1/UAC needed since the
-   tools were already installed from the earlier 2026-10-15 run). Manifest read
-   back and verified.
-2. **Owner, in WezTerm:** walk the checklist in `windows/README.md` ("After
-   installing"): banner, `keys` / Ctrl+B ?, Alt/Ctrl+B pane keys, Ctrl+B y,
-   starship (cursor right after `▸`, red on failure), Ctrl+T/Ctrl+R/Alt+C
-   with previews, **Ukrainian letters type correctly (not `?????`)**, **`z`
-   jumps after a couple of `cd`s**, F1, `alert`, `less` keys on the Ukrainian
-   layout. `$env:CLI_TWEAKS_TIMING=1; pwsh` (was ~0.47 s here, starship ~0.37 s
-   of it — over the ~0.2 s target, worth a look).
-3. ✅ DONE 2026-10-18: `uninstall.ps1 -Cosmetic` twice (2nd run a no-op,
-   manifest unchanged), then `install.ps1 -Configs -Starship -WezTerm
-   -SetDefaultTerminal` (`-Configs` alone does not bring back starship.toml,
-   wezterm.lua or the WezTerm Start-menu shortcut). Manifest packages /
-   modules / fonts / dirs identical before and after; the 8 files back.
-   Small leftovers, not fixed: `-Cosmetic` removes the WezTerm Start-menu
-   shortcut (an install artifact); every `-SetDefaultTerminal` run piles up
-   another `settings.json.bak.<ts>`; `-Starship` prints "already present -
-   will not be removed" although the manifest correctly keeps it as ours.
-4. **Do NOT merge yet (owner, 2026-10-18).** Windows is validated and
-   PARITY.md updated, but the branch also carries the Ubuntu half
-   (`490d8ba`, `94419cc`, `4e6b3da`: WezTerm as an install option + default
-   terminal / Files menu, the `uninstall.sh` rewrite, live history sharing),
-   so it waits for the Ubuntu run.
-   **Progress 2026-10-18 (on the laptop):** the uninstall half is DONE —
-   `./uninstall.sh --configs` ×3 (repeats change nothing), then
-   `./install.sh --configs --starship --wezterm`: files and manifest
-   identical to before (checksums), except `alacritty.toml`, which stays the
-   original (item 1.5). `__pycache__` leftover of the Files
-   extension fixed in `uninstall.sh`. `--full --dry-run` read: it would take
-   xclip zoxide bat tealdeer wezterm-nightly python3-nautilus
-   gir1.2-nautilus-4.0 and nothing else; not run for real. PARITY.md updated.
-   Left:
-   - **Owner, in WezTerm on Ubuntu:** title bar under GNOME Wayland,
-     `Ctrl+Alt+T` and Files → "Open in WezTerm" (run `nautilus -q` once
-     first), banner, `keys` / `Ctrl+B ?`, Ctrl+R / Alt+C on the Ukrainian
-     layout. Then set PARITY.md's Ubuntu WezTerm cell to ✅.
-   - Merge `wezterm_dev` into `main` (fast-forward).
-   - SF-WS1181 is NOT safe for `--configs` until item 1.4 is fixed.
-5. Then delete `C:\Users\pawla\cli_tweaks_cleanup_20261011_224657\`
-   (quarantine of the old install; `cleanup.log` maps every file) — nothing
-   in it is needed once the new install works.
+1. **Not eyeballed yet:** `alert` (OSC 777 -> toast; PARITY.md).
+2. **pwsh startup is over budget:** `$env:CLI_TWEAKS_TIMING=1; pwsh` showed
+   ~0.47 s, starship ~0.37 s of it, against the ~0.2 s target.
+3. **Small installer leftovers:** `uninstall.ps1 -Cosmetic` removes the
+   WezTerm Start-menu shortcut (an install artifact); every
+   `-SetDefaultTerminal` run piles up another `settings.json.bak.<ts>`;
+   `-Starship` prints "already present - will not be removed" although the
+   manifest correctly keeps it as ours.
+4. Delete `C:\Users\pawla\cli_tweaks_cleanup_20261011_224657\` (quarantine
+   of the old install; `cleanup.log` maps every file) — nothing in it is
+   needed now that the new install works.
