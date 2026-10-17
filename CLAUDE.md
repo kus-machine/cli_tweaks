@@ -262,6 +262,20 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   are control codes, not text, so "shortcuts fine, letters are `?`" points
   straight here. bash on Ubuntu gets this from the locale, so this is
   Windows-only.
+- **PSReadLine names a Ctrl+letter key by the console's CURRENT keyboard
+  layout** — at bind time and at press time. Started on the Ukrainian layout,
+  `-Key Ctrl+d` is filed as `Ctrl+в` (`Get-PSReadLineKeyHandler -Bound` shows
+  it under that name, so a filter on `Ctrl+d` finds "nothing"); Ctrl+D on the
+  English layout then prints `^D`, and Ctrl+R hits PSReadLine's built-in
+  search (its defaults are always filed under the Latin name). `Alt+c` is
+  the reverse: filed Latin, arrives as `Alt+с`. `__ct_twin_keys` at the end
+  of the pwsh profile files every Ctrl/Alt+letter under both names (Latin +
+  the Cyrillic letter on the same cap) by reflection into PSReadLine's
+  `_dispatchTable` (tested on 2.4.5; wrapped in `try`); a script-block
+  binding beats a built-in one. Bind new letter keys BEFORE it; anything
+  that rebinds later (PSFzf's import) must call it again. Do NOT "fix" this
+  in `wezterm.lua` with the physical-key `SendKey` loop on Windows — tried
+  2026-10-18: one press arrived twice, Alt+C typed `c`, typing hung.
 - **starship's prompt silently kills zoxide's directory recording.** zoxide's
   generated pwsh init hooks by WRAPPING the `prompt` function, but the profile's
   fallback prompt and then starship both REPLACE `prompt` outright (both defined

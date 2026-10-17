@@ -256,7 +256,11 @@ $env:FZF_CTRL_R_OPTS = "--preview 'echo {}' --preview-window 'down,4,wrap,border
 # one press is ~0.5 s slower), then call its handlers directly.
 # PSFzf throws on import if fzf is missing, so require it. Interactive only.
 if ((Get-Command fzf -ErrorAction Ignore) -and -not [Console]::IsOutputRedirected) {
-    function global:__ct_psfzf { if (-not (Get-Module PSFzf)) { Import-Module PSFzf -ErrorAction Stop } }
+    # (__ct_twin_keys, near the end of this file: PSFzf's import rebinds
+    # Ctrl+T under one layout's name only -- file it under both again.)
+    function global:__ct_psfzf {
+        if (-not (Get-Module PSFzf)) { Import-Module PSFzf -ErrorAction Stop; __ct_twin_keys }
+    }
     Set-PSReadLineKeyHandler -Key Ctrl+t -BriefDescription 'fzf: pick files' -ScriptBlock {
         __ct_psfzf; Invoke-FzfPsReadlineHandlerProvider }
     Set-PSReadLineKeyHandler -Key Ctrl+r -BriefDescription 'fzf: search history' -ScriptBlock {
@@ -525,6 +529,64 @@ if (Get-Command starship -ErrorAction Ignore) {
     }
 }
 __ct_mark 'starship'
+
+# ---------------------------------------------------------------------------
+# Ctrl/Alt+letter on BOTH keyboard layouts (English + Ukrainian)
+# ---------------------------------------------------------------------------
+# PSReadLine files a Ctrl+letter key under the letter that the console's
+# CURRENT keyboard layout puts on that key -- both when a key is bound and
+# when it is pressed. A window opened on the Ukrainian layout filed
+# `-Key Ctrl+d` as "Ctrl+в" and `Ctrl+r` as "Ctrl+к"; on the English layout
+# Ctrl+D then found nothing (printed ^D) and Ctrl+R hit PSReadLine's own
+# reverse search, whose defaults are always filed under the Latin name.
+# Alt+letter is the other way round: filed as "Alt+c", but pressed on the
+# Ukrainian layout it arrives as "Alt+с". Whether it works depends on which
+# layout was active at start vs. now -- hence "works sometimes".
+#
+# So every Ctrl/Alt+letter key is filed under BOTH names, the Latin one and
+# the Cyrillic one on the same key cap. When both names are taken by
+# different handlers, ours (a script block) beats PSReadLine's built-in one
+# -- that is what makes Ctrl+R open fzf, not reverse search, on either layout.
+# PSReadLine has no public way to do this, so it reaches into its key table
+# (tested on PSReadLine 2.4.5). If a future version changes that, the try
+# swallows it and the plain bindings above stay as they are.
+# Runs again after PSFzf is imported (it rebinds Ctrl+T then).
+function global:__ct_twin_keys {
+    try {
+        $bf  = [Reflection.BindingFlags]
+        $rl  = [Microsoft.PowerShell.PSConsoleReadLine]
+        $one = $rl.GetField('_singleton', $bf::NonPublic -bor $bf::Static).GetValue($null)
+        $tbl = $rl.GetField('_dispatchTable', $bf::NonPublic -bor $bf::Instance).GetValue($one)
+        $kt  = $tbl.GetType().GenericTypeArguments[0]          # PSKeyInfo (internal)
+        $make = @{
+            Ctrl = $kt.GetMethod('WithCtrl', $bf::NonPublic -bor $bf::Static, $null, [type[]]@([char]), $null)
+            Alt  = $kt.GetMethod('WithAlt',  $bf::NonPublic -bor $bf::Static, $null, [type[]]@([char]), $null)
+        }
+        # Latin letter -> the Ukrainian letter on the same key, and back.
+        $lat = 'qwertyuiopasdfghjklzxcvbnm'
+        $cyr = 'йцукенгшщзфівапролдячсмить'
+        # A Dictionary, not @{}: @{} ignores case, and Ctrl+C (= Shift+Ctrl+c)
+        # must not be twinned with Ctrl+с.
+        $twin = [Collections.Generic.Dictionary[char, char]]::new()
+        for ($i = 0; $i -lt $lat.Length; $i++) {
+            $twin[$lat[$i]] = $cyr[$i]; $twin[$cyr[$i]] = $lat[$i]
+        }
+        $other = [char]0
+        foreach ($key in @($tbl.Keys)) {
+            if (-not ($key.KeyStr -cmatch '^(Ctrl|Alt)\+(.)$' -and
+                      $twin.TryGetValue([char]$Matches[2], [ref]$other))) { continue }
+            $tkey = $make[$Matches[1]].Invoke($null, @($other))
+            $mine = $tbl[$key]
+            if (-not $tbl.ContainsKey($tkey)) {
+                $tbl[$tkey] = $mine
+            } elseif ($mine.ScriptBlock -and -not $tbl[$tkey].ScriptBlock) {
+                $tbl[$tkey] = $mine                # ours beats a built-in
+            }
+        }
+    } catch { }
+}
+if (-not [Console]::IsOutputRedirected) { __ct_twin_keys }
+__ct_mark 'layout twins'
 
 # ---------------------------------------------------------------------------
 # Show the banner -- new windows and new tabs, not splits (see above).
