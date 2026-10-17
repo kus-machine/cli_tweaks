@@ -29,7 +29,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Uninstall / revert    | manifest-driven uninstaller          | ✅ `--configs` ×3 + reinstall run for real 2026-10-18 (laptop); 🟡 `--full` dry-run only | 📝          | ✅ `-Cosmetic` ×2 + reinstall run for real 2026-10-18 |
 | Startup banner + `keys` | cat + key macros on a new terminal; `keys` = full cheatsheet | ✅ | 📝 | ✅ (`windows/keys.txt`, Ctrl+B ?) |
 | Done notification     | `alert` after a long command       | ✅ notify-send | 📝 | 🟡 OSC 777 → toast, not eyeballed |
-| `less` keys on the UA layout | `shared/lesskey` (d = в, q = й …) | 🟡 wired 2026-10-18, not eyeballed | 📝 | ✅ |
+| `less` keys on the UA layout | `shared/lesskey` (d = в, q = й …) | ✅ (2026-10-18) | 📝 | ✅ |
 
 Windows was installed and verified on 2026-07-12 (Windows 11, pwsh 7.6.3): all
 tools install via winget, the profile loads clean, and every macro/tool resolves.
