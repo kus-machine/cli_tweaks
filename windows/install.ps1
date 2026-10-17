@@ -276,7 +276,8 @@ try {
 
         # tldr pages: tealdeer ships without them. Best-effort - a firewall that
         # blocks tldr.exe shows up as "os error 10013"; `tldr --update` later.
-        $tldr = Find-Tool 'tldr' @("$env:LOCALAPPDATA\Microsoft\WinGet\Links\tldr.exe")
+        # (winget puts tealdeer's tldr.exe in its package folder, not in Links)
+        $tldr = Find-Tool 'tldr' @("$PkgGlobs\dbrgn.tealdeer*\tldr.exe", "$env:LOCALAPPDATA\Microsoft\WinGet\Links\tldr.exe")
         if ($tldr) {
             if (Invoke-Quiet $tldr @('--update')) { Write-Host "  tldr pages downloaded." -ForegroundColor Green }
             else { Write-Host "  tldr --update failed (network/firewall?) - run it later." -ForegroundColor DarkYellow }
@@ -344,13 +345,67 @@ try {
     }
 
     # --- WezTerm (terminal: tabs + panes, replaces Alacritty + tmux) ------------
+    # Nightly, not stable: the last stable release is from 2024-02 and the
+    # config was tested against nightly (which upstream recommends).
+    #
+    # NOT via winget: wez.wezterm.nightly pins the SHA256 of one nightly build,
+    # but its URL always serves the newest one, so it fails with "Installer
+    # hash does not match" (exit -1978335215) whenever upstream has built since
+    # the manifest was published - i.e. nearly always. Instead the official
+    # nightly zip goes to %LOCALAPPDATA%\Programs\WezTerm (per-user, no admin),
+    # plus a Start menu shortcut. Re-running -WezTerm updates it to the newest
+    # nightly. Both the folder and the shortcut are in the manifest.
     if ($All -or $WezTerm) {
         Write-Host "== WezTerm ==" -ForegroundColor Yellow
         # Its logs/sockets dir appears on first launch: note whether it existed.
         Register-Dir (Join-Path $HOME '.local\share\wezterm')
-        # Nightly, not stable: the last stable release is from 2024-02 and the
-        # config was tested against nightly (which upstream recommends).
-        Winget-Install 'wez.wezterm.nightly'
+        $wzDir = Join-Path $env:LOCALAPPDATA 'Programs\WezTerm'
+        Register-Dir $wzDir                                   # before creating it
+        $wzEntry = $Dirs_ | Where-Object { $_.path -eq $wzDir } | Select-Object -First 1
+
+        # WezTerm needs the Visual C++ 2015+ runtime. It is shared by many
+        # programs, so we never install (and later remove) it ourselves.
+        $vc = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64' -ErrorAction SilentlyContinue
+        if (-not ($vc -and $vc.Installed -eq 1)) {
+            Write-Host "  WARNING: the Visual C++ 2015+ x64 runtime seems missing - WezTerm will not start without it:" -ForegroundColor Red
+            Write-Host "           winget install Microsoft.VCRedist.2015+.x64" -ForegroundColor Red
+        }
+
+        $running = Get-Process wezterm-gui, wezterm-mux-server -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Path -and $_.Path -like "$wzDir\*" }
+        if ($wzEntry.preexisting) {
+            Write-Host "  $wzDir existed before cli_tweaks - leaving it alone (not ours)." -ForegroundColor DarkYellow
+        } elseif ($running) {
+            Write-Host "  WezTerm is running from $wzDir - close it and re-run -WezTerm to update it." -ForegroundColor DarkYellow
+        } else {
+            $tmp = New-Item -ItemType Directory -Force -Path (Join-Path $env:TEMP "wezterm_$(Get-Random)")
+            $zip = Join-Path $tmp 'wezterm.zip'
+            Write-Host "  downloading the WezTerm nightly zip (~70 MB)" -ForegroundColor Cyan
+            Invoke-WebRequest -Uri 'https://github.com/wezterm/wezterm/releases/download/nightly/WezTerm-windows-nightly.zip' -OutFile $zip -UseBasicParsing
+            Expand-Archive $zip -DestinationPath $tmp -Force
+            $gui = Get-ChildItem $tmp -Recurse -Filter 'wezterm-gui.exe' | Select-Object -First 1
+            if (-not $gui) { throw "unexpected WezTerm zip layout in $tmp" }
+            # Our own earlier copy (the manifest says the folder is ours): replace it.
+            if (Test-Path $wzDir) { Remove-Item (Join-Path $wzDir '*') -Recurse -Force }
+            New-Item -ItemType Directory -Force -Path $wzDir | Out-Null
+            Copy-Item (Join-Path $gui.Directory.FullName '*') $wzDir -Recurse -Force
+            Remove-Item $tmp -Recurse -Force
+            Write-Host "  installed $wzDir" -ForegroundColor Green
+        }
+
+        # Start menu shortcut (search "WezTerm"; pin it from there).
+        $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\WezTerm.lnk'
+        if (-not (Test-FileRegistered $lnk)) {
+            $bak = Backup-Move $lnk
+            Register-File $lnk $bak                           # before writing
+        }
+        $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+        $sc.TargetPath       = Join-Path $wzDir 'wezterm-gui.exe'
+        $sc.WorkingDirectory = $HOME
+        $sc.Description      = 'WezTerm (cli_tweaks)'
+        $sc.Save()
+        Write-Host "  installed $lnk" -ForegroundColor Green
+
         Copy-Config (Join-Path $Shared 'wezterm.lua') (Join-Path $HOME '.config\wezterm\wezterm.lua')
     }
 
@@ -363,15 +418,45 @@ try {
         Expand-Archive $zip -DestinationPath $tmp -Force
         $fontDir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
         New-Item -ItemType Directory -Force -Path $fontDir | Out-Null
+        # A font loaded into the session (AddFontResource, or simply in use) is
+        # LOCKED: overwriting it fails with "being used by another process".
+        # So: skip a file that is already identical, otherwise unload the old
+        # one first; if it is still locked, warn and carry on with the rest.
+        if (-not ('CliTweaks.Gdi' -as [type])) {
+            Add-Type -Namespace CliTweaks -Name Gdi -MemberDefinition @'
+[DllImport("gdi32.dll", CharSet = CharSet.Unicode)] public static extern int AddFontResource(string file);
+[DllImport("gdi32.dll", CharSet = CharSet.Unicode)] public static extern int RemoveFontResource(string file);
+'@
+        }
+        $locked = 0
+        $replaced = 0
         Get-ChildItem $tmp -Filter '*.ttf' -Recurse | ForEach-Object {
             $dest = Join-Path $fontDir $_.Name
             $regVal = "$($_.BaseName) (TrueType)"
             Register-Font $dest $regVal (Test-Path $dest)   # before overwriting it
-            Copy-Item $_.FullName $dest -Force
+            $same = (Test-Path $dest) -and ((Get-FileHash $dest).Hash -eq (Get-FileHash $_.FullName).Hash)
+            if (-not $same) {
+                if (Test-Path $dest) { [void][CliTweaks.Gdi]::RemoveFontResource($dest); $replaced++ }
+                try { Copy-Item $_.FullName $dest -Force -ErrorAction Stop }
+                catch { $locked++; Write-Host "  in use, kept the old copy: $($_.Exception.Message)" -ForegroundColor DarkYellow }
+            }
             New-ItemProperty -Path $FontRegKey -Name $regVal -Value $dest -PropertyType String -Force | Out-Null
+            [void][CliTweaks.Gdi]::AddFontResource($dest)  # usable right away, no sign-out needed
         }
         Remove-Item $tmp -Recurse -Force
-        Write-Host "  FiraCode Nerd Font installed (per-user)." -ForegroundColor Green
+        if ($locked) {
+            Write-Host "  FiraCode Nerd Font installed; $locked file(s) were in use and kept as they were (close apps / sign out, then -Fonts again to refresh them)." -ForegroundColor DarkYellow
+        } else {
+            Write-Host "  FiraCode Nerd Font installed (per-user)." -ForegroundColor Green
+        }
+        # Replacing a font file that this session already had loaded leaves
+        # Windows' DirectWrite font cache pointing at the old file. WezTerm then
+        # dies on start with "panic at ...dwrote...font_collection.rs" (seen
+        # 2026-10-15) until the session is restarted.
+        if ($replaced) {
+            Write-Host "  NOTE: $replaced existing font file(s) were replaced - SIGN OUT and back in" -ForegroundColor Yellow
+            Write-Host "        (or restart) before opening WezTerm, or it may crash on start." -ForegroundColor Yellow
+        }
     }
 
     # --- Windows Terminal default profile -> PowerShell 7 ----------------------

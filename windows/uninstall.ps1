@@ -237,7 +237,7 @@ if ($fontsRemoved) { Write-Host "  removed $fontsRemoved font entries we added."
 # installed it; its cache dir is tealdeer's business, so ask tealdeer).
 $tealdeer = @($man.packages) | Where-Object { $_ -and $_.id -eq 'dbrgn.tealdeer' -and -not $_.preexisting }
 if ($tealdeer) {
-    $tldr = Find-Tool 'tldr' @("$env:LOCALAPPDATA\Microsoft\WinGet\Links\tldr.exe")
+    $tldr = Find-Tool 'tldr' @("$PkgRoot\dbrgn.tealdeer*\tldr.exe", "$env:LOCALAPPDATA\Microsoft\WinGet\Links\tldr.exe")
     if ($tldr -and $PSCmdlet.ShouldProcess('tldr cache', 'clear')) {
         & $tldr --clear-cache 2>&1 | Out-Null
         Write-Host "  tldr pages cleared" -ForegroundColor Green

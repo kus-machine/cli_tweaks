@@ -33,7 +33,7 @@ application" — that stays opt-in (see below).
 | `-Fonts` | FiraCode Nerd Font (per-user) |
 | `-Starship` | starship + `shared/starship.toml` → `~/.config/starship.toml` |
 | `-Configs` | the pwsh 7 profile → `~/Documents/PowerShell/profile.ps1`; `keys.txt` + `shared/lesskey` → `~/.config/cli_tweaks/`; `shared/bat/themes` → `%APPDATA%\bat\themes` + `bat cache --build` |
-| `-WezTerm` | WezTerm (nightly, `wez.wezterm.nightly`) + `shared/wezterm.lua` → `~/.config/wezterm/wezterm.lua` |
+| `-WezTerm` | WezTerm nightly from the official zip → `%LOCALAPPDATA%\Programs\WezTerm` + Start menu shortcut (not winget: its nightly package fails the hash check), and `shared/wezterm.lua` → `~/.config/wezterm/wezterm.lua`. Re-run to update. |
 | `-SetDefaultTerminal` | Windows Terminal default profile → PowerShell 7 (included in `-All`) |
 | `-SetWindowsDefaultTerminalApp` | Opt-in: set the Windows "Default terminal application" to Windows Terminal (**not** in `-All`; WezTerm cannot fill that role) |
 

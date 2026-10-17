@@ -47,7 +47,7 @@ foreach ($__t in @(
     @{ c = 'rg';       g = "$__pkgs\BurntSushi.ripgrep*\*\rg.exe" },
     @{ c = 'bat';      g = "$__pkgs\sharkdp.bat*\*\bat.exe" },
     @{ c = 'btop4win'; g = "$__pkgs\aristocratos.btop4win*\btop4win\btop4win.exe" },
-    @{ c = 'tldr';     g = "$env:LOCALAPPDATA\Microsoft\WinGet\Links\tldr.exe" },
+    @{ c = 'tldr';     g = "$__pkgs\dbrgn.tealdeer*\tldr.exe" },
     @{ c = 'starship'; g = "$env:ProgramFiles\starship\bin\starship.exe" }
 )) {
     if (-not (Get-Command $__t.c -ErrorAction Ignore)) {

@@ -263,7 +263,7 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   no twins; on-screen labels (Ctrl+B q, quick-select) are **digits**; leader
   `Ctrl+B` with a 5 s timeout plus direct Alt keys; normal title bar
   (`TITLE|RESIZE` — integrated buttons render as a dot/dash with the Nerd
-  Font). WezTerm is the **nightly** (`wez.wezterm.nightly`); stable is 2024-02.
+  Font). WezTerm is the **nightly** (official zip, see below); stable is 2024-02.
 - fzf on Windows runs `--preview` commands through **cmd.exe**: use `2>NUL`
   and `||`, not bash syntax. PSFzf reads `FZF_CTRL_T_OPTS` / `FZF_ALT_C_OPTS`
   / `FZF_CTRL_R_OPTS`, and runs `FZF_ALT_C_COMMAND` via Invoke-Expression.
@@ -271,6 +271,16 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   (exit 1603); winget's exit codes are unreliable (non-zero for "already
   installed") — judge by `winget list`; portable packages leave **dead user
   PATH entries** behind. `uninstall.ps1` handles all three.
+- **WezTerm crashing on start with `panic at …dwrote…font_collection.rs`**
+  (log in `~\.local\share\wezterm\`) = Windows' DirectWrite font cache still
+  points at font files that were replaced while loaded (e.g. `install.ps1
+  -Fonts` over an older FiraCode). Not a config bug — `wezterm -n ls-fonts`
+  works, with the config it panics. Sign out/in (or restart). The installer
+  prints a NOTE when it replaced font files.
+- WezTerm on Windows is NOT installed via winget: `wez.wezterm.nightly` pins
+  one build's hash while its URL serves the newest nightly ("Installer hash
+  does not match"). `install.ps1 -WezTerm` unpacks the official nightly zip to
+  `%LOCALAPPDATA%\Programs\WezTerm` + a Start menu shortcut instead.
 - A tool that cannot reach the network with **os error 10013** (e.g.
   `tldr --update`) is blocked by the owner's firewall, not broken.
 - Package manager on Windows: **winget** (choco also present; scoop absent).
