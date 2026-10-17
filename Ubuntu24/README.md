@@ -5,7 +5,7 @@ Personal Ubuntu terminal setup including:
 - Bash improvements
 - Tmux configuration
 - Starship prompt
-- Alacritty configuration
+- WezTerm (tabs + panes, same keys as tmux)
 - Nerd Fonts
 - Common CLI utilities
 
@@ -119,7 +119,7 @@ Provides:
   PSReadLine's InlinePrediction on Windows. `Right`/`End`/`Ctrl+F` accept it,
   `Ctrl+Right`/`Alt+F` accept one word, `Ctrl+G` dismisses it.
 - **Syntax highlighting of the line you type**, re-themed to Tokyo Night so it
-  matches the terminal (`shared/alacritty.toml`) instead of ble.sh's default
+  matches the terminal (WezTerm's `Tokyo Night`) instead of ble.sh's default
   palette — which paints builtins red, globs hot pink and puts white-on-red
   blocks behind errors. The whole palette lives in `configs/.blerc`
   (deployed to `~/.blerc`, which ble.sh sources by itself):
@@ -158,7 +158,7 @@ make it slower or noisier:
 
 - **The first terminal after installing or updating ble.sh** rebuilds its
   caches in `~/.cache/blesh` for that `$TERM` (~1.7 s) and prints
-  `ble/term.sh: updating tput cache for TERM=...`. Alacritty and tmux use
+  `ble/term.sh: updating tput cache for TERM=...`. WezTerm and tmux use
   different `TERM`s, so each does it once.
 - **Power-saver mode** (`powerprofilesctl get`) slows ble.sh, which is plain
   bash code, by roughly 2×.
@@ -170,28 +170,9 @@ startup to measure the terminal.
 
 ---
 
-### --alacritty
-
-Installs:
-
-- Alacritty terminal
-- Alacritty configuration
-
-Provides:
-
-- GPU accelerated terminal
-- Transparency
-- Modern rendering
-
-```bash
-./install.sh --alacritty
-```
-
----
-
 ### --wezterm
 
-The other terminal. Installs:
+The terminal. Installs:
 
 - WezTerm **nightly** from upstream's apt repository (`apt.fury.io/wez`; the
   key goes to `/usr/share/keyrings/wezterm-fury.gpg`, the source to
@@ -212,29 +193,24 @@ start it; `Ctrl+B l` opens a tab with tmux in it. In WezTerm the banner and
 ./install.sh --wezterm
 ```
 
+Until 2026-10-18 there was a second option, `--alacritty` (Alacritty, tabs
+and panes from tmux). It is parked, unmaintained, in
+[`legacy/alacritty/`](../legacy/alacritty/README.md) — its README says how to
+try it again.
+
 ---
 
-### The terminal you install is the default one
+### WezTerm becomes the default terminal
 
-`--alacritty` / `--wezterm` also make that terminal the desktop's terminal.
-One per run (naming both is an error); to try the other, install it in a
-second run — the last one installed is the default:
-
-```bash
-./install.sh --all --wezterm      # WezTerm, and it is the default
-./install.sh --alacritty          # add Alacritty; now IT is the default
-```
-
-What "default" covers:
+`--wezterm` also makes WezTerm the desktop's terminal. What that covers:
 
 - **Ctrl+Alt+T** — sets the system-wide `x-terminal-emulator` alternative
   (`sudo update-alternatives --set`). Installing a terminal only registers it
   there; whoever pinned the alternative before keeps it until this runs.
-- **Files, right click** — adds "Open in Alacritty"
-  (`configs/nautilus/cli_tweaks_terminal.py` → `~/.local/share/nautilus-python/extensions/`)
-  and installs `python3-nautilus`, which also switches on WezTerm's own
-  "Open in WezTerm". Restart Files once: `nautilus -q`. GNOME's "Open in
-  Terminal" stays next to it and opens GNOME Terminal — two explicit choices.
+- **Files, right click** — installs `python3-nautilus`, which switches on
+  WezTerm's own "Open in WezTerm" (the package ships it). Restart Files once:
+  `nautilus -q`. GNOME's "Open in Terminal" stays next to it and opens GNOME
+  Terminal — two explicit choices.
 
 The alternative's state before the first change is recorded; `uninstall.sh`
 (`--configs` too) puts it back.
@@ -243,14 +219,11 @@ The alternative's state before the first change is recorded; `uninstall.sh`
 
 ## Install Everything
 
-`--all` installs everything **except the terminal, which you name**:
-
 ```bash
-./install.sh --all --alacritty     # Alacritty, tabs/panes from tmux
-./install.sh --all --wezterm       # WezTerm, tabs/panes built in (as on Windows)
+./install.sh --all
 ```
 
-A bare `./install.sh --all` stops with an error. This installs:
+This installs:
 
 - CLI packages
 - Nerd Fonts
@@ -258,7 +231,7 @@ A bare `./install.sh --all` stops with an error. This installs:
 - Tmux configuration
 - Starship
 - ble.sh (inline autosuggestions)
-- the terminal you named, as the default terminal
+- WezTerm, as the default terminal
 
 ---
 
@@ -271,7 +244,7 @@ Examples:
 
 ./install.sh --fonts --starship --configs
 
-./install.sh --alacritty --configs
+./install.sh --wezterm --configs
 ```
 
 ---
@@ -465,24 +438,24 @@ depends on whether tmux is running and whether Shift is held:
 
 | Where you are | How to select | How to copy |
 |---|---|---|
-| **No tmux** | drag with the mouse | automatic — `selection.save_to_clipboard` is on (`Ctrl+Shift+C` still works) |
+| **No tmux** (WezTerm) | drag with the mouse | automatic; `Ctrl+C` copies while something is selected; `Ctrl+B y` copies the last command's output (more in `keys`) |
 | **In tmux** | drag with the mouse (the orange selection) | automatic on release, piped through `xclip` |
 | **In tmux** | double-click a word / triple-click a line | automatic, same pipe |
 | **In tmux**, scrolled back | wheel or `Shift+PageUp` enters copy-mode, then drag — or `Space` to start a keyboard selection | mouse release, or `Enter` |
 | **On the command line** | `Shift`+arrows | `Alt+W` (with nothing selected it copies the whole line) |
 
-Paste is unchanged: `Ctrl+Shift+V`, or middle-click for the primary selection.
+Paste: `Ctrl+V` or right click (WezTerm), or middle-click for the primary
+selection.
 A paste that ends in a newline (a triple-clicked line, most copies from a
 browser) has that **one trailing newline dropped** by `~/.blerc`, so a single
 line lands as a normal editable line instead of switching ble.sh to
 `-- MULTILINE --`. Real multi-line pastes still get MULTILINE.
 
-**With the Ukrainian layout on**, `Ctrl+Shift+C/V`, `Ctrl+C`, `Ctrl+R`,
-`Alt+C` and every other `Ctrl+letter` / `Alt+letter` work exactly as on the
-Latin layout. Alacritty matches bindings against the character the active
-layout produces (`Ctrl+Shift+М`, not `V`); `shared/alacritty.toml` maps every
-Ukrainian letter back to the Latin key on the same key cap, the way GNOME
-Terminal does on its own. tmux gets the same treatment: every prefix key
+**With the Ukrainian layout on**, `Ctrl+C`, `Ctrl+V`, `Ctrl+R`, `Alt+C` and
+every other `Ctrl+letter` / `Alt+letter` work exactly as on the Latin layout:
+WezTerm binds by physical key and sends every other `Ctrl`/`Alt`+letter by
+its key cap too (`shared/wezterm.lua`), the way GNOME Terminal does on its
+own. tmux needs help: every prefix key
 in use is bound a second time under its Ukrainian letter (`Ctrl+B в` =
 detach, `Ctrl+B с` = new window, `Ctrl+B ґ` = split right, since `|` needs
 AltGr there). Only `x` / `&` (kill pane / window, whose confirmation takes a
@@ -509,7 +482,7 @@ anywhere else. It fills both now, so `Ctrl+Y` still yanks it back.
 
 ## No grey suggestions while typing?
 
-They come from ble.sh, not from Alacritty — a terminal cannot do this, only the
+They come from ble.sh, not from the terminal — a terminal cannot do this, only the
 line editor can. Check, in order:
 
 ```bash
@@ -531,17 +504,18 @@ fallback.
 
 ---
 
-## Alacritty will not start?
+## WezTerm will not start?
 
-Alacritty is a GPU terminal and needs a working OpenGL/GLX context. If it exits
-immediately with something like
+WezTerm is a GPU terminal and needs a working OpenGL context. If its window
+flashes and closes, and `wezterm start` prints `egl Initialize: BAD_ACCESS`
+(the legacy Alacritty said something like this instead:
 
 ```
 Error: Error { raw_code: Some(2), raw_os_message: Some("BadValue (integer
 parameter out of range for operation)"), kind: BadAttribute }
 ```
 
-that is a **graphics-driver problem, not a config problem**. Confirm with:
+), that is a **graphics-driver problem, not a config problem**. Confirm with:
 
 ```bash
 glxinfo -B     # fails the same way -> the whole GL stack is broken

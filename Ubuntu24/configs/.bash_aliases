@@ -208,8 +208,8 @@ cli_tweaks_f1() {
 # Keys are written out the way they are printed on the keyboard (Ctrl+T,
 # Alt+C, Shift+PgUp), arrows as ← ↑ → ↓ -- no ^T / M-c shorthand.
 #
-# Colours are the Tokyo Night values from shared/alacritty.toml, sent as
-# truecolor when the terminal says it supports it ($COLORTERM) and as the
+# Colours are the Tokyo Night values (listed in legacy/alacritty/alacritty.toml),
+# sent as truecolor when the terminal says it supports it ($COLORTERM) and as the
 # nearest 256-colour index otherwise.
 
 # __cli_tweaks_fg <hex rrggbb> <256-colour fallback>  -- prints the escape
@@ -440,7 +440,7 @@ Ctrl+B d   Ctrl+B r	detach (session keeps running) · reload config
 Ukrainian layout	the same keys work (Ctrl+B ґ splits right)
 
 # TERMINAL
-select with the mouse	copied already · Ctrl+Shift+V pastes
+select with the mouse	copied already · Ctrl+V pastes
 middle click	paste the current selection
 paste one line	its trailing newline is dropped: no MULTILINE
 Ukrainian layout	Ctrl+… and Alt+… keys work as on the Latin one
@@ -488,5 +488,12 @@ Ctrl+B l   Ctrl+B :	launcher (tmux, bash without cli_tweaks) · command palette
 Ctrl+B ?	this list in its own tab (q closes it)
 Ukrainian layout	every key works as on the Latin one
 @all
+
+# LONG OUTPUT  (git log, git diff, man, keys -- the less pager; both layouts)
+Space  b	page down / up  (PgDn PgUp too)
+d  u	half a page down / up
+g  G	to the top / to the bottom
+/  n  N	search · next match · previous match
+q	quit
 KEYS
 }

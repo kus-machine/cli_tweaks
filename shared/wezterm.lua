@@ -3,8 +3,8 @@
 -- ----------------------------------------------------------------------------
 -- Deployed to ~/.config/wezterm/wezterm.lua by
 --   windows/install.ps1 -WezTerm        (Windows: the only terminal)
---   Ubuntu24/install.sh --wezterm       (Ubuntu: the alternative to
---                                        --alacritty, pick one or both)
+--   Ubuntu24/install.sh --wezterm       (Ubuntu: the only terminal since
+--                                        2026-10-18; Alacritty is legacy/)
 -- Saved -> WezTerm reloads it by itself (no restart needed).
 -- The few OS differences are under `if IS_WINDOWS` -- keep them few.
 --
@@ -20,7 +20,7 @@
 -- (WezTerm's stock Ctrl+Shift+… defaults are still there, just not needed.)
 --
 -- Every binding uses PHYSICAL key positions, so it works the same with the
--- Ukrainian layout on -- no Cyrillic twins needed (unlike Alacritty/tmux).
+-- Ukrainian layout on -- no Cyrillic twins needed (unlike tmux).
 --
 -- Cheat sheet: Ctrl+B ?  or  `keys`. KEEP BOTH IN SYNC when a binding here
 -- changes: Windows -- windows/keys.txt (deployed to
@@ -402,7 +402,8 @@ end
 -- as Ctrl+R (and Alt+C as Alt+C, for fzf). Windows' console does that on its
 -- own; on Linux WezTerm would send the Cyrillic letter. So every Ctrl+letter
 -- and Alt+letter that is not bound above is sent by its PHYSICAL key -- the
--- WezTerm twin of the generated Ukrainian block in shared/alacritty.toml.
+-- WezTerm twin of the generated Ukrainian block in
+-- legacy/alacritty/alacritty.toml.
 if not IS_WINDOWS then
   local taken = { ['CTRL phys:B'] = true }   -- the leader is not in `keys`
   for _, k in ipairs(keys) do taken[k.mods .. ' ' .. k.key] = true end

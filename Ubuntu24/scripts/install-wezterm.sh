@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# WezTerm - the alternative to Alacritty (./install.sh --wezterm).
+# WezTerm - Ubuntu's terminal (./install.sh --wezterm). Until 2026-10-18 it
+# was the alternative to Alacritty + tmux (now legacy/alacritty/).
 #
-# Alacritty has no tabs or panes, so on Ubuntu it runs tmux for them. WezTerm
-# has both built in and takes the same keys (Alt+1..9, Alt+T, Ctrl+B | ...),
-# exactly like on Windows -- one config for both: shared/wezterm.lua. tmux
-# stays installed (ssh, detach); WezTerm just does not start it.
+# WezTerm has tabs and panes built in and takes the same keys as our tmux
+# (Alt+1..9, Alt+T, Ctrl+B | ...), exactly like on Windows -- one config for
+# both: shared/wezterm.lua. tmux stays installed (ssh, detach); WezTerm just
+# does not start it.
 #
 # Ubuntu has no wezterm package, so this adds upstream's apt repository
 # (https://wezterm.org/install/linux.html) and installs the NIGHTLY, the same
@@ -64,11 +65,8 @@ fi
 # shared/wezterm.lua is the same file Windows uses (see its header).
 deploy_file "$REPO_ROOT/shared/wezterm.lua" "$HOME/.config/wezterm/wezterm.lua"
 
-# Like Alacritty, WezTerm draws with the GPU (OpenGL here). If it fails with a
-# GLX/EGL error, see the Alacritty note in CLAUDE.md -- a driver fault, not a
-# config fault.
+# WezTerm draws with the GPU (OpenGL here). If it fails with a GLX/EGL error,
+# see the GPU-driver note in CLAUDE.md -- a driver fault, not a config fault.
 echo
 ok "wezterm installed"
 echo "   start it from the app menu (WezTerm) or with: wezterm"
-echo "   to make it the default terminal:"
-echo "     sudo update-alternatives --config x-terminal-emulator"

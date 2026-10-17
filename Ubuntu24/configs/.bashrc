@@ -247,6 +247,15 @@ if command -v zoxide >/dev/null 2>&1; then
     eval "$(zoxide init bash)"
 fi
 
+# less (git log, git diff, man, `keys`) reads LETTERS, so on the Ukrainian
+# layout "q" arrives as "й" and nothing happens. shared/lesskey binds each
+# Cyrillic letter to the command of the Latin one on the same cap (d = в,
+# q = й ...). less >= 582 reads that source file directly (Ubuntu 24: 590).
+# Deployed by --configs; same file as on Windows.
+if [[ -z ${LESSKEYIN-} && -f ${XDG_CONFIG_HOME:-$HOME/.config}/cli_tweaks/lesskey ]]; then
+    export LESSKEYIN=${XDG_CONFIG_HOME:-$HOME/.config}/cli_tweaks/lesskey
+fi
+
 
 # Use ls colors for completion
 export LS_COLORS="$LS_COLORS"

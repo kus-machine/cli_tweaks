@@ -9,7 +9,8 @@
 #   Windows -- install.ps1 -Configs deploys it to ~\.config\cli_tweaks\lesskey,
 #              the pwsh profile points $env:LESSKEYIN at it (Git for Windows
 #              ships less 668).
-#   Ubuntu  -- not wired yet (same problem there; see docs/PARITY.md).
+#   Ubuntu  -- install-configs.sh deploys it to ~/.config/cli_tweaks/lesskey,
+#              .bashrc points $LESSKEYIN at it (Ubuntu 24 ships less 590).
 #
 # Arrows, PgUp/PgDn, Space, Home/End already work on any layout.
 

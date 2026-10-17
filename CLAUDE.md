@@ -30,10 +30,10 @@ or harness default that says otherwise.
 
 1. **Ubuntu24 is the canonical experience.** When adding a feature, define it in
    the Ubuntu configs + PARITY.md first, then propagate to other platforms.
-2. **Portable configs live in `shared/`** (starship, alacritty, bat themes, lesskey). Platform
+2. **Portable configs live in `shared/`** (starship, wezterm, bat themes, lesskey). Platform
    installers *reference* them; never copy a shared file into a platform folder.
    If you change where a shared file lives, update every installer that reads it
-   (currently: `Ubuntu24/scripts/install-{starship,alacritty,wezterm,configs}.sh`,
+   (currently: `Ubuntu24/scripts/install-{starship,wezterm,configs}.sh`,
    `windows/install.ps1`).
 3. **Per-shell files stay platform-local** because syntax differs:
    `Ubuntu24/configs/.bashrc` + `.bash_aliases` + `.blerc` (bash),
@@ -60,14 +60,19 @@ or harness default that says otherwise.
    `install.ps1` writes its manifest in a `finally`, so a failure halfway is
    still revertible.
 6. Keep installers **componentised** with matching switches across platforms:
-   `packages`, `fonts`, `starship`, `configs`, and the terminal — `alacritty`
-   or `wezterm` on Ubuntu — exactly one per run (`--all` refuses to run
-   without one), and the one you install becomes the default (Ctrl+Alt+T +
-   Files menu, `install-default-terminal.sh`); there is deliberately no
-   separate "default terminal" flag — `wezterm` on Windows (+ `shell` on Windows for pwsh7, `blesh` on
+   `packages`, `fonts`, `starship`, `configs`, and the terminal `wezterm`
+   (part of `--all`; on Ubuntu it also becomes the default — Ctrl+Alt+T +
+   Files menu, `install-default-terminal.sh` — there is deliberately no
+   separate "default terminal" flag) (+ `shell` on Windows for pwsh7, `blesh` on
    Ubuntu — Windows/macOS get inline autosuggestions from
    PSReadLine/zsh-autosuggestions and need no component).
    SSH is a planned, separate, manual step — not auto-installed.
+6a. **`legacy/` is parked, not maintained.** Ubuntu offered Alacritty (+ tmux
+   for tabs) as a second terminal until 2026-10-18; the owner dropped it as
+   double work and parked it in `legacy/alacritty/` to maybe try again. Do not
+   update those files for new keys/colours, and do not wire them back into
+   `install.sh`. tmux itself is NOT legacy (ssh, detach) — keep its config,
+   its Ukrainian twins and the `@only tmux` block of `keys` current.
 7. **Every install component must be revertible.** Record what it did in the
    manifest and undo it in the platform uninstaller
    (`Ubuntu24/uninstall.sh`, `windows/uninstall.ps1`). Both refuse to touch
@@ -163,7 +168,8 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   options and a full **Tokyo Night** face palette that overrides ble.sh's
   default one — the default (red builtins, hot-pink globs, white-on-red error
   blocks) was rejected as ugly. Keep any new colour in that palette: hue only,
-  values taken from `shared/alacritty.toml`, no bold/underline/background
+  values as listed in `legacy/alacritty/alacritty.toml` (= WezTerm's
+  `Tokyo Night`), no bold/underline/background
   blocks. The grey suggestion stays `fg=242` (approved) rather than a themed
   colour, so it reads as "not typed yet".
 - **ble.sh keymap surgery has three traps** (all hit while making `Esc` cancel
@@ -204,16 +210,13 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   table only when `mode-keys` is vi; ours is emacs). In `.blerc`, write
   clipboard text with `ble/util/put` — `ble/util/print` appends a newline, which
   submits the line when pasted.
-- **Alacritty + a Cyrillic layout**: bindings match the character the
-  *active layout* produces, so `{ key = "V", mods = "Control|Shift" }` never
-  fires on the Ukrainian layout (it is `М` there), and `Ctrl`/`Alt`+letter
-  sent the Cyrillic letter instead of a control code. `shared/alacritty.toml`
-  has a generated `[keyboard] bindings` block mapping every Ukrainian letter
-  to the Latin key on the same cap (chars bindings carry
-  `mode = "~Vi|~Search"`). Any new Alacritty binding on a letter needs its
-  Cyrillic twin there too — and so does any new tmux prefix key (both
+- **tmux + a Cyrillic layout**: the key after the prefix arrives as the
+  Cyrillic letter, so any new tmux prefix key needs its Ukrainian twin (both
   `tmux.conf`s end with a "same keys on the Ukrainian layout" block; the
-  layout is xkb `ua(unicode)`: `ґ` sits on the `\|` key, `ж` on `;`).
+  layout is xkb `ua(unicode)`: `ґ` sits on the `\|` key, `ж` on `;`). WezTerm
+  needs no twins (physical keys). The legacy Alacritty config solved the same
+  problem with a generated `[keyboard] bindings` block — see
+  `legacy/alacritty/` if it is ever revived.
 - **Pasting drops one trailing newline** (`.blerc`, advice on
   `ble/widget/bracketed-paste.proc`), so a triple-clicked line does not open
   ble.sh's MULTILINE mode.
@@ -240,13 +243,13 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   that OUR removal creates go. The old `autoremove -y` would have taken 21
   NVIDIA driver packages on SF-WS1181. Test it with `--dry-run`, or in a fake
   `$HOME` with a logging `sudo` stub first on `PATH`.
-- **Alacritty is not where autosuggestions live.** A terminal emulator cannot
+- **The terminal is not where autosuggestions live.** A terminal emulator cannot
   draw them; the line editor does. Grey-text bugs are ble.sh/`.bashrc` bugs.
-- **Alacritty needs working OpenGL/GLX.** A `BadValue … BadAttribute` startup
-  error is a GPU-driver fault, not a config fault — check `glxinfo -B` and
+- **GPU terminals need working OpenGL.** WezTerm (and the legacy Alacritty)
+  fail on a GPU-driver fault, not a config fault — check `glxinfo -B` and
   `nvidia-smi` (a driver upgrade needs a reboot before the kernel module
-  matches the userspace libs). Don't debug the TOML for this. WezTerm's
-  version of the same fault: the window flashes and closes, and
+  matches the userspace libs). Don't debug the config for this. Alacritty
+  said `BadValue … BadAttribute`; WezTerm's window flashes and closes, and
   `wezterm start` prints `egl Initialize: BAD_ACCESS` (2026-10-13:
   unattended-upgrades had moved the NVIDIA libs to 580.178 under a running
   580.173 kernel module — `nvidia-smi` says `Driver/library version
@@ -344,6 +347,15 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   entries).
 
 ## Testing notes
+
+- **CI runs on every push** (`.github/workflows/check.yml`, GitHub Actions):
+  shellcheck at warning level, bash/zsh syntax, both `tmux.conf` load, TOML /
+  Lua / lesskey syntax, the ASCII rule for `install.ps1` / `uninstall.ps1`,
+  their parse under 5.1 (read as ANSI) and pwsh 7, and
+  `tests/ubuntu-configs-roundtrip.sh` (install/uninstall `--configs` in a
+  throwaway `$HOME`, no sudo). Run that test locally after touching
+  `deploy_file`, `install-configs.sh` or `uninstall.sh`. A new script or
+  config file must be added to `check.yml`, or nothing checks it.
 
 - Windows changes can be tested on this machine (with the user's OK before
   installing software).

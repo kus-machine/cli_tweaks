@@ -1,9 +1,10 @@
 # ---------------------------------------------------------------------------
 # cli_tweaks -- "Open in <terminal>" in the Files (Nautilus) right-click menu.
 #
-# Deployed by  ./install.sh --alacritty / --wezterm  to
+# LEGACY, not maintained since 2026-10-18 (see README.md next to it).
+# Deployed by  legacy/alacritty/install-alacritty.sh  to
 #   ~/.local/share/nautilus-python/extensions/cli_tweaks_terminal.py
-# Needs python3-nautilus (installed by the same component). Takes effect after
+# Needs python3-nautilus (installed by the same script). Takes effect after
 # `nautilus -q` (or logging out and in).
 #
 # Nautilus' own "Open in Terminal" belongs to the nautilus-extension-gnome-

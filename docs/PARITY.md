@@ -8,7 +8,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Capability            | Tool / mechanism                    | Ubuntu24 | macOS (zsh) | Windows (pwsh7) |
 |-----------------------|-------------------------------------|:--------:|:-----------:|:---------------:|
 | Prompt                | **starship** (`shared/starship.toml`)| ✅       | 🟡 manual PS1| ✅ (newline fix 2026-10-12) |
-| Terminal emulator     | **alacritty** (`shared/alacritty.toml`) or **WezTerm** (`shared/wezterm.lua`); Ubuntu: chosen at install (`--alacritty` / `--wezterm`) | ✅ Alacritty · ✅ WezTerm | 📝 | ✅ WezTerm |
+| Terminal emulator     | **WezTerm** (`shared/wezterm.lua`); Alacritty parked in `legacy/alacritty/` 2026-10-18 | ✅ WezTerm | 📝 (to decide) | ✅ WezTerm |
 | Font                  | FiraCode Nerd Font                   | ✅       | 📝          | ✅              |
 | `ls` w/ icons         | **eza** — `l` `la` `lss`             | ✅       | 🟡 partial  | ✅              |
 | `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | ✅ (seen 2026-10-18) |
@@ -29,7 +29,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Uninstall / revert    | manifest-driven uninstaller          | ✅ `--configs` ×3 + reinstall run for real 2026-10-18 (laptop); 🟡 `--full` dry-run only | 📝          | ✅ `-Cosmetic` ×2 + reinstall run for real 2026-10-18 |
 | Startup banner + `keys` | cat + key macros on a new terminal; `keys` = full cheatsheet | ✅ | 📝 | ✅ (`windows/keys.txt`, Ctrl+B ?) |
 | Done notification     | `alert` after a long command       | ✅ notify-send | 📝 | 🟡 OSC 777 → toast, not eyeballed |
-| `less` keys on the UA layout | `shared/lesskey` (d = в, q = й …) | 📝 | 📝 | ✅ |
+| `less` keys on the UA layout | `shared/lesskey` (d = в, q = й …) | 🟡 wired 2026-10-18, not eyeballed | 📝 | ✅ |
 
 Windows was installed and verified on 2026-07-12 (Windows 11, pwsh 7.6.3): all
 tools install via winget, the profile loads clean, and every macro/tool resolves.
@@ -115,16 +115,16 @@ several things that looked fine but were not:
 
 ## Known drift / cleanup to reconcile
 
-- **Terminal differs by design**: Alacritty + tmux on macOS, WezTerm on
-  Windows, either on Ubuntu (PLAN decision 2). The WezTerm keys mirror tmux;
+- **Terminal**: WezTerm on Windows and Ubuntu; macOS still to decide (PLAN
+  decision 2). tmux stays on Ubuntu (ssh, detach). The WezTerm keys mirror tmux;
   WezTerm also has direct `Alt+\` `Alt+-` `Alt+Z` `Alt+X` / `Ctrl+Alt+arrows`
   pane keys that tmux does not have yet — add them there if they stick.
 - **`keys` lives in two places**: Ubuntu's heredoc in `.bash_aliases`, Windows'
   `windows/keys.txt`. Same format. Ubuntu's has an `@only tmux` and an
   `@only wezterm` block; the WezTerm one repeats Windows' tab/pane/copy rows —
   change both when a `wezterm.lua` key changes.
-- **`shared/lesskey`** is wired on Windows only; Ubuntu's `less` has the same
-  Ukrainian-layout problem.
+- **`shared/lesskey`** is wired on Windows and Ubuntu, not on macOS yet
+  (it needs less >= 582 to read the source file — check the Mac's `less --version`).
 
 - **zoxide is wired on Ubuntu and Windows only.** The macOS README tells you to
   `brew install zoxide`, but `.zshrc` does not run `zoxide init` yet.

@@ -10,9 +10,10 @@ everywhere.
 ## What you get
 
 - **Prompt:** starship (`shared/starship.toml`)
-- **Terminal:** Tokyo Night + FiraCode Nerd Font — Alacritty + tmux on
-  Linux/macOS (`shared/alacritty.toml`), WezTerm on Windows with the same tab
-  and pane keys (`shared/wezterm.lua`)
+- **Terminal:** Tokyo Night + FiraCode Nerd Font — WezTerm on Ubuntu and
+  Windows, one config with tab and pane keys like tmux (`shared/wezterm.lua`);
+  tmux stays for SSH / detached sessions. (The old Alacritty setup is parked
+  in `legacy/alacritty/`.)
 - **Fuzzy search:** fzf + fd — `Ctrl+T` files, `Ctrl+R` history, `Alt+C` cd
 - **Inline autosuggestions:** grey completion-as-you-type from history —
   ble.sh (bash), zsh-autosuggestions (zsh), PSReadLine prediction (pwsh)
@@ -37,7 +38,7 @@ Planned work (macOS parity, SSH config, Raspberry Pi) lives in
 Each installer is componentised — install only what you want. Linux example:
 
 ```bash
-./install.sh --packages --starship --configs   # skip fonts/alacritty
+./install.sh --packages --starship --configs   # skip fonts and WezTerm
 ```
 
 Windows example:

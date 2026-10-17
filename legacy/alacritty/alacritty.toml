@@ -1,3 +1,6 @@
+# LEGACY -- not maintained since 2026-10-18 (was shared/alacritty.toml; see
+# README.md next to it). Deployed by legacy/alacritty/install-alacritty.sh.
+
 [window]
 # True background transparency (0.0 is fully transparent, 1.0 is opaque)
 opacity = 0.9

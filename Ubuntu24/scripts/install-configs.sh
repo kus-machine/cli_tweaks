@@ -12,6 +12,8 @@ deploy_file "$ROOT_DIR/configs/.bash_aliases" "$HOME/.bash_aliases"
 deploy_file "$ROOT_DIR/configs/.tmux.conf"    "$HOME/.tmux.conf"
 # ble.sh's init file. Harmless when ble.sh is not installed: nothing reads it.
 deploy_file "$ROOT_DIR/configs/.blerc"        "$HOME/.blerc"
+# less's keys on the Ukrainian layout; .bashrc points $LESSKEYIN at it.
+deploy_file "$REPO_ROOT/shared/lesskey"       "$HOME/.config/cli_tweaks/lesskey"
 
 # bat colour themes (shared/bat/themes, see the README there):
 # tokyonight_night is the default -- BAT_THEME in .bashrc -- and synthwave84

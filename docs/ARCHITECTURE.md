@@ -11,10 +11,9 @@ cli_tweaks/
 │   ├── PARITY.md            # canonical feature matrix across platforms
 │   └── ARCHITECTURE.md      # this file
 ├── shared/                  # portable, platform-agnostic configs (single source)
-│   ├── alacritty.toml       # terminal — used by Linux/macOS
-│   ├── wezterm.lua          # terminal with tabs + panes — Windows, and Ubuntu --wezterm
+│   ├── wezterm.lua          # terminal with tabs + panes — Windows and Ubuntu
 │   ├── starship.toml        # prompt   — used by every shell
-│   ├── lesskey              # less's keys on the Ukrainian layout (Windows so far)
+│   ├── lesskey              # less's keys on the Ukrainian layout (Windows + Ubuntu)
 │   └── bat/themes/          # bat colour themes (tokyonight_night = default)
 ├── Ubuntu24/                # Linux — the CANONICAL experience
 │   ├── install.sh           # flag dispatcher (--packages --fonts ... --all)
@@ -24,6 +23,9 @@ cli_tweaks/
 ├── macos/                   # macOS (zsh) — being brought up to parity
 │   ├── .zshrc, .tmux.conf
 │   └── install.sh           # 📝 planned
+├── legacy/alacritty/        # parked, NOT maintained: Ubuntu's Alacritty option (until 2026-10-18)
+├── tests/                   # ubuntu-configs-roundtrip.sh (install/uninstall in a temp $HOME)
+├── .github/workflows/       # check.yml: CI on every push (shellcheck, .ps1 parse, round trip)
 └── windows/                 # Windows 11 — native PowerShell 7 + WezTerm
     ├── install.ps1          # winget-based, per-user, flag/switch model
     ├── uninstall.ps1        # manifest-driven revert (-Cosmetic / -Full)
@@ -41,14 +43,14 @@ are tracked in [PLAN.md](PLAN.md), not present in the tree yet.
    first, then propagate.
 
 2. **`shared/` is the single source of truth for portable configs.** Anything
-   whose format is identical across OSes (starship, alacritty) lives in
+   whose format is identical across OSes (starship, wezterm) lives in
    `shared/` and is *referenced* by each platform's installer — never copied
    into a platform folder. Per-shell files (`.bashrc`, `.zshrc`, the PS profile)
    stay platform-local because their syntax differs.
 
 3. **Installers are componentised and idempotent-ish.** Each platform exposes
    the same component switches (`packages`, `fonts`, `starship`, `configs`,
-   plus the terminal: `alacritty` and/or `wezterm` on Ubuntu (named at install), `wezterm` on Windows; Windows adds
+   plus the terminal `wezterm`; Windows adds
    `shell` for pwsh7, Ubuntu adds `blesh` for the inline autosuggestions bash
    lacks natively). A user file is captured **once**
    before it is first overwritten (Ubuntu: `~/.local/state/cli_tweaks/pristine/`;
@@ -69,6 +71,7 @@ are tracked in [PLAN.md](PLAN.md), not present in the tree yet.
   `install.ps1 -Shell` installs pwsh7 if missing; the profile lands at
   `~/Documents/PowerShell/profile.ps1`, its data files (`keys.txt`, `lesskey`)
   in `~/.config/cli_tweaks/`.
-- **Terminal: Alacritty on macOS, WezTerm on Windows, either on Ubuntu** (changed
-  2026-10-12, see PLAN.md decision 2). Windows has no tmux, and Alacritty has
-  no tabs/panes of its own; WezTerm brings both, with the tmux keys.
+- **Terminal: WezTerm on Windows and Ubuntu** (Windows since 2026-10-12;
+  Ubuntu's Alacritty option parked in `legacy/` on 2026-10-18, see PLAN.md
+  decision 2). WezTerm brings tabs/panes with the tmux keys; tmux stays on
+  Ubuntu for SSH and detached sessions. macOS: decided in the Mac pass.

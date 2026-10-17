@@ -1,0 +1,131 @@
+# ---------------------------------------------------------------------------
+# cli_tweaks -- automatic checks on every push (GitHub Actions).
+#
+# GitHub starts a clean virtual machine, checks the repo out and runs the
+# steps below. The result shows as a green tick / red cross next to the
+# commit on GitHub (and a mail when it fails). Nothing here installs
+# anything on your own machines, and nothing blocks a push.
+#
+# What it catches -- each step is a mistake that already happened, or a file
+# nobody can test on the machine where it was edited:
+#   linux    shellcheck on the installers; bash/zsh syntax of the configs;
+#            both tmux.conf load without an error; starship.toml is valid
+#            TOML; wezterm.lua is valid Lua; lesskey compiles; the Windows
+#            installers are ASCII-only (5.1 rule, CLAUDE.md); and the Ubuntu
+#            install/uninstall round trip in a throwaway $HOME
+#            (tests/ubuntu-configs-roundtrip.sh).
+#   windows  install.ps1 / uninstall.ps1 parse under Windows PowerShell 5.1,
+#            read the way 5.1 reads them (ANSI); every .ps1 parses under
+#            PowerShell 7. There is no pwsh on the Ubuntu machines, so a
+#            .ps1 edited there is otherwise unchecked until the next Windows
+#            session.
+#
+# Run any linux step locally by copying its `run:` lines.
+# legacy/ is not checked: it is parked, not maintained.
+# ---------------------------------------------------------------------------
+name: check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:      # the "Run workflow" button on the Actions tab
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the checkers
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck zsh tmux lua5.4 less jq >/dev/null
+
+      - name: shellcheck - installer scripts
+        run: shellcheck -x --severity=warning Ubuntu24/install.sh Ubuntu24/uninstall.sh Ubuntu24/scripts/*.sh tests/*.sh
+
+      - name: shellcheck - bash configs
+        # SC1090: `source` of a computed path (ble.sh, ~/.bashrc.local) is on
+        #         purpose. SC2033: `tmux ls` is taken for a function call.
+        # .blerc: SC2054 -- ble-face specs are "fg=...,bold", commas and all;
+        #         SC2154 -- the _ble_edit_* variables come from ble.sh itself.
+        run: |
+          shellcheck -s bash --severity=warning -e SC1090,SC2033 \
+              Ubuntu24/configs/.bashrc Ubuntu24/configs/.bash_aliases
+          shellcheck -s bash --severity=warning -e SC2054,SC2154 Ubuntu24/configs/.blerc
+
+      - name: bash / zsh syntax
+        run: |
+          for f in Ubuntu24/configs/.bashrc Ubuntu24/configs/.bash_aliases Ubuntu24/configs/.blerc; do
+              bash -n "$f"
+          done
+          zsh -n macos/.zshrc
+
+      - name: tmux configs load
+        # tmux exits 0 even when a line is wrong; it prints the error, so any
+        # output at all is a failure.
+        run: |
+          for f in Ubuntu24/configs/.tmux.conf macos/.tmux.conf; do
+              out="$(tmux -L ci -f /dev/null start-server \; source-file "$f" \; kill-server 2>&1)"
+              if [ -n "$out" ]; then echo "::error file=$f::$out"; exit 1; fi
+              echo "ok  $f"
+          done
+
+      - name: starship.toml is valid TOML
+        run: python3 -c "import tomllib; tomllib.load(open('shared/starship.toml', 'rb')); print('ok')"
+
+      - name: wezterm.lua is valid Lua
+        run: luac5.4 -p shared/wezterm.lua && echo ok
+
+      - name: lesskey compiles
+        run: lesskey -o /dev/null shared/lesskey && echo ok
+
+      - name: Windows installers are ASCII-only
+        # Windows PowerShell 5.1 reads a .ps1 without a BOM as ANSI: an
+        # em-dash or a smart quote becomes a phantom string delimiter.
+        # (The pwsh 7 profile may use UTF-8 -- it is not checked here.)
+        run: |
+          if LC_ALL=C grep -nP '[^\x00-\x7F]' windows/install.ps1 windows/uninstall.ps1; then
+              echo "::error::non-ASCII characters above -- see CLAUDE.md (5.1 reads these files as ANSI)"
+              exit 1
+          fi
+          echo ok
+
+      - name: Ubuntu install/uninstall round trip
+        run: tests/ubuntu-configs-roundtrip.sh
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $bad = 0
+          foreach ($f in 'windows/install.ps1', 'windows/uninstall.ps1') {
+              # Read the file the way 5.1 RUNS a script without a BOM: as ANSI
+              # (ParseFile alone would read it as UTF-8 and miss the bug).
+              $text = [IO.File]::ReadAllText((Resolve-Path $f), [Text.Encoding]::Default)
+              $errs = $null
+              [void][System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$null, [ref]$errs)
+              if ($errs) {
+                  $errs | ForEach-Object { "::error file=$f,line=$($_.Extent.StartLineNumber)::$($_.Message)" }
+                  $bad++
+              } else { "ok  $f" }
+          }
+          exit $bad
+
+      - name: Parse under PowerShell 7
+        shell: pwsh
+        run: |
+          $bad = 0
+          foreach ($f in Get-ChildItem windows -Filter *.ps1) {
+              $errs = $null
+              [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errs)
+              if ($errs) {
+                  $errs | ForEach-Object { "::error file=windows/$($f.Name),line=$($_.Extent.StartLineNumber)::$($_.Message)" }
+                  $bad++
+              } else { "ok  windows/$($f.Name)" }
+          }
+          exit $bad

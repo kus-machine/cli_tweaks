@@ -25,7 +25,7 @@ repeat-safe, empty dirs pruned, pristine copy reused after `--full`). Left:_
 2. **Re-running `--configs` silently overwrites edits.**
    `deploy_file`: once a path is in the manifest, the next install writes
    straight over it. Hand edits to `.tmux.conf`, `.blerc`, `starship.toml`,
-   `alacritty.toml`, `wezterm.lua` are lost (only `.bashrc` has an escape
+   `wezterm.lua` are lost (only `.bashrc` has an escape
    hatch: `.bashrc.local`).
    Fix idea: if the current file differs from both the repo source and the
    pristine copy, save a `.bak.<ts>` first and say so.
@@ -43,15 +43,7 @@ repeat-safe, empty dirs pruned, pristine copy reused after `--full`). Left:_
    `~/.tmux.conf.bak.20260608_154748` (owned by root, 756 bytes). Decide, then
    copy it into the pristine store and fix the manifest entry by hand.
 
-5. **`alacritty.toml` cannot come back without changing the default terminal.**
-   _Added 2026-10-18 (laptop)._ `uninstall.sh --configs` restores the original
-   `~/.config/alacritty/alacritty.toml`, but only `install.sh --alacritty`
-   deploys ours again — and that also makes Alacritty the Ctrl+Alt+T terminal.
-   On a WezTerm machine that still uses Alacritty there is no clean way back.
-   Fix idea: `--configs` (or `--wezterm`) also deploys the config of the other
-   terminal when that terminal is installed.
-
-6. **`install-wezterm.sh` never repairs a missing apt source.**
+5. **`install-wezterm.sh` never repairs a missing apt source.**
    _Added 2026-10-18._ With `wezterm-nightly` installed it skips the
    repository step, so a `wezterm.list` disabled by a release upgrade (see
    CLAUDE.md) stays off. Fix idea: if the manifest records the source as ours

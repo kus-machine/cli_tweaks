@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# Make Alacritty or WezTerm THE terminal of the desktop. Not a flag of its
-# own: install.sh runs it after --alacritty / --wezterm -- the terminal you
-# install is the one you want (the owner's rule, 2026-10-13).
+# Make WezTerm THE terminal of the desktop. Not a flag of its own:
+# install.sh runs it after --wezterm -- the terminal you install is the one
+# you want (the owner's rule, 2026-10-13). Until 2026-10-18 it could also do
+# this for Alacritty (now legacy/alacritty/).
 #
 # Two places decide which terminal opens, and neither is a per-user setting:
 #
@@ -13,12 +14,11 @@
 #                      got it.
 #   Files, right click "Open in Terminal" comes from nautilus-extension-gnome-
 #                      terminal and always opens GNOME Terminal. We cannot
-#                      redirect it; we add our own item next to it
-#                      (configs/nautilus/cli_tweaks_terminal.py, "Open in
-#                      Alacritty") -- WezTerm's package already ships "Open in
-#                      WezTerm". Both are nautilus-python extensions, so
-#                      python3-nautilus is installed for them. GNOME's item
-#                      next to ours is welcome: two explicit choices.
+#                      redirect it, and need not: WezTerm's package ships
+#                      "Open in WezTerm" (wezterm-nautilus.py), a nautilus-
+#                      python extension -- which shows only once
+#                      python3-nautilus is installed. GNOME's item next to
+#                      it is welcome: two explicit choices.
 #
 # The alternative's state BEFORE our first change (auto/manual + the target)
 # is recorded once; uninstall puts it back.
@@ -30,13 +30,9 @@ source "$ROOT_DIR/scripts/common.sh"
 
 ALT_NAME="x-terminal-emulator"
 
-case "${1-}" in
-    alacritty) target=/usr/bin/alacritty;         label=Alacritty ;;
-    # wezterm's own entry: a wrapper that opens in the caller's folder
-    wezterm)   target=/usr/bin/open-wezterm-here; label=WezTerm ;;
-    *) die "usage: install-default-terminal.sh alacritty|wezterm (run by install.sh)" ;;
-esac
-term="$1"
+# wezterm's own entry: a wrapper that opens in the caller's folder
+target=/usr/bin/open-wezterm-here
+term=wezterm
 
 [[ -x "$target" ]] || die "$term is not installed ($target missing) - run ./install.sh --$term first"
 update-alternatives --list "$ALT_NAME" 2>/dev/null | grep -qxF "$target" ||
@@ -56,11 +52,9 @@ fi
 # --- 2. Files (Nautilus) right-click menu ----------------------------------
 
 apt_install_tracked python3-nautilus
-deploy_file "$ROOT_DIR/configs/nautilus/cli_tweaks_terminal.py" \
-    "$HOME/.local/share/nautilus-python/extensions/cli_tweaks_terminal.py"
 
 echo
 ok "$term is the default terminal"
 echo "   Ctrl+Alt+T opens it now. For the Files right-click menu (\"Open in"
-echo "   $label\"), restart Files once:  nautilus -q"
+echo "   WezTerm\"), restart Files once:  nautilus -q"
 echo "   GNOME's own \"Open in Terminal\" item stays and still opens GNOME Terminal."

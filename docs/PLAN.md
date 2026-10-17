@@ -11,9 +11,9 @@ _Last updated: 2026-10-05 (zsh trial planned)._
 | # | Decision | Rationale |
 |---|----------|-----------|
 | 1 | **Windows = native PowerShell 7 only** (no WSL, no tmux) | Simpler; user wants a native Windows shell, not a Linux VM |
-| 2 | **WezTerm on Windows, Alacritty on macOS, either on Ubuntu** (was: Alacritty everywhere; changed 2026-10-12) | Windows has no tmux, and Alacritty alone has no tabs/panes — it "integrated badly". WezTerm has both built in, takes the tmux keys, and won a side-by-side trial against Windows Terminal and Rio. Ubuntu (2026-10-12): the owner wants to try both, so `install.sh` makes you name one (`--all --alacritty` / `--all --wezterm`), and the one you install becomes the default terminal (Ctrl+Alt+T, Files menu) — no separate flag, owner 2026-10-13; one `shared/wezterm.lua` serves Windows and Ubuntu; in WezTerm, tmux stays installed but is not started |
+| 2 | **WezTerm on Windows and Ubuntu; macOS to decide in the Mac pass** (was: Alacritty everywhere; Windows changed 2026-10-12; Ubuntu's Alacritty option parked in `legacy/alacritty/` 2026-10-18 — two terminals meant every key change in three to four places; tmux stays for ssh/detach) | Windows has no tmux, and Alacritty alone has no tabs/panes — it "integrated badly". WezTerm has both built in, takes the tmux keys, and won a side-by-side trial against Windows Terminal and Rio. Ubuntu (2026-10-12): the owner wants to try both, so `install.sh` makes you name one (`--all --alacritty` / `--all --wezterm`), and the one you install becomes the default terminal (Ctrl+Alt+T, Files menu) — no separate flag, owner 2026-10-13; one `shared/wezterm.lua` serves Windows and Ubuntu; in WezTerm, tmux stays installed but is not started |
 | 3 | **Remote/Pi = lightweight bash profile** (fuzzy + macros, no GUI/fonts) | Pi is headless; fast to push over SSH |
-| 4 | **`shared/` holds portable configs** (starship, alacritty, ssh) | De-duplicate; platforms reference, never copy-in |
+| 4 | **`shared/` holds portable configs** (starship, wezterm, ssh) | De-duplicate; platforms reference, never copy-in |
 | 5 | **Adopt zoxide as canonical** and wire it everywhere | It was documented but never actually wired anywhere |
 
 ## Environment facts (this Windows machine, probed 2026-07-12)
@@ -285,31 +285,47 @@ nushell / pwsh everywhere (rejected: new language / foreign on Unix).
 1. **Ubuntu installer safety fixes** — the uninstaller half was done
    2026-10-12 (apt simulation, record-before-act, repeat-safe); the install
    half is still in docs/REMINDERS.md.
-1a. **Try WezTerm on Ubuntu** (`./install.sh --wezterm --configs`) and walk
-   the WezTerm rows of `keys`; then decide whether Ubuntu keeps both.
-2. **Port the startup banner + `keys` to zsh** (pwsh done 2026-10-12).
-   Consider `shared/lesskey` on Ubuntu too (same Ukrainian-layout problem).
-3. **macOS rewrite to parity** (needs a Mac to test):
+1a. ✅ WezTerm tried on Ubuntu (2026-10-18) — it stays the only terminal;
+   Alacritty parked in `legacy/alacritty/` (decision 2). `shared/lesskey`
+   wired on Ubuntu the same day.
+2. ✅ **CI on GitHub Actions** (2026-10-18): shellcheck, `.ps1` parse under
+   5.1 + 7 with the ASCII rule, TOML/Lua/lesskey syntax, and the Ubuntu
+   install/uninstall round trip — `.github/workflows/check.yml`.
+3. **macOS rewrite to parity** (needs a Mac to test). Owner, 2026-10-18:
+   not yet — first settle and try everything on Ubuntu/Windows, then do the
+   Mac in one go. The zsh banner + `keys` belong to that pass.
+   - **Pick the terminal first**: WezTerm (`shared/wezterm.lua` already runs
+     on two OSes) is the obvious one now that Alacritty is legacy. On macOS
+     it needs `send_composed_key_when_left_alt_is_pressed = false` (or the
+     right-Alt variant), else every `Alt+…` key types a special character.
    - Add starship + `shared/starship.toml`.
    - eza `l`/`la`/`lss`, `fin`; fzf + fd backend; zoxide; btop.
      (`tree`/`tree1`..`tree9` already landed in `.zshrc`, untested.)
    - Pin `ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=fg=242` so the grey suggestion matches
      Ubuntu's ble.sh and Windows' PSReadLine.
    - Reconcile git aliases to `gs`/`gd`/`gl`.
-   - Alacritty: `[window] option_as_alt = "Both"` (macOS-only key), or every
-     `Alt+…` binding — word jumps, tmux `Alt+1..9`/`Alt+T`/`Alt+arrows` —
-     types a special character instead.
+   - (If Alacritty after all: `[window] option_as_alt = "Both"`, same reason.)
    - Add `macos/install.sh` (brew-based, same component model).
-4. **SSH config (design + manual how-to doc; NOT auto-installed).** Cover:
+4. **SSH config (design + manual how-to doc; NOT auto-installed).** Wanted,
+   but talk it through with the owner in detail first (what exactly, how)
+   before writing anything. Cover:
    autoconnect (ControlMaster multiplexing), auto-disconnect on dead links
    (ServerAlive*), agent forwarding scoped to trusted hosts, and "connect by
    last octet" subnet macros. Ship a doc explaining how to apply it and edit the
    macros by hand — do not wire it into any installer.
-5. **Raspberry Pi / remote profile.** Lightweight bash (fuzzy + macros, optional
+5. **Raspberry Pi / remote profile.** Same: design conversation first.
+   Lightweight bash (fuzzy + macros, optional
    starship), no GUI/fonts; a way to push it over SSH. Validate on real hardware.
 6. **Consider `shared/tmux.conf`** (merge the two near-identical copies).
 
 ### 💡 Backlog / nice-to-have
+- **One list instead of copies** (proposed 2026-10-18, later): the fzf
+  `--exclude` list lives in both `.bashrc` and the pwsh profile — move it to
+  a file in `shared/`; the key descriptions live in three places (Ubuntu
+  `keys` heredoc, `windows/keys.txt`, `HINTS` in `wezterm.lua`) — a small
+  script that checks they agree.
+- **pwsh startup** ~0.47 s vs the ~0.2 s budget, starship ~0.37 s of it
+  (Windows; docs/REMINDERS.md item 2).
 - `bat` theme aligned with Tokyo Night (matches alacritty). Done 2026-10-05:
   `shared/bat/themes/tokyonight_night.tmTheme` (default) + `synthwave84`,
   deployed by `--configs`; `ansi` was rejected as too few colours.
@@ -320,7 +336,7 @@ nushell / pwsh everywhere (rejected: new language / foreign on Unix).
   WT integrates well — optional).
 - A top-level cross-platform `bootstrap` doc / one-liner per OS.
 - Neovim config if the user adopts an editor beyond nano.
-- CI check that `shared/` files stay valid TOML.
+- ~~CI check that `shared/` files stay valid TOML~~ — done 2026-10-18 (check.yml).
 - **starship.toml unused blocks — keep, decided 2026-10-11.** `[time]`,
   `[cmd_duration]` and `[status]` are configured but not in the custom
   `format` (and `[git_branch].symbol` is set but `$symbol` is not in its

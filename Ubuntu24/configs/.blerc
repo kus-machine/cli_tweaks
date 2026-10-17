@@ -8,8 +8,9 @@
 # ble.sh's out-of-the-box palette is the reason this file exists: it paints
 # builtins red, keywords blue, globs hot pink, and puts white-on-red / white-on-
 # green blocks behind things. Everything below replaces that with the same
-# Tokyo Night colours the terminal itself uses (shared/alacritty.toml), so the
-# command line looks like part of the theme instead of a 1998 syntax highlighter.
+# Tokyo Night colours the terminal itself uses (WezTerm's 'Tokyo Night'; the
+# values are listed in legacy/alacritty/alacritty.toml), so the command line
+# looks like part of the theme instead of a 1998 syntax highlighter.
 #
 # Reference:  ble-face          # list every face and its current value
 #             bleopt            # list every option
@@ -305,7 +306,7 @@ bleopt highlight_variable=1       # colour a name by its variable type
 
 
 # ---------------------------------------------------------------------------
-# Tokyo Night palette  (identical values to shared/alacritty.toml)
+# Tokyo Night palette  (identical values to legacy/alacritty/alacritty.toml)
 #
 #   blue    #7aa2f7    magenta #bb9af7    red    #f7768e    fg      #c0caf5
 #   cyan    #7dcfff    teal    #73daca    orange #ff9e64    comment #565f89
