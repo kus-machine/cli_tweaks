@@ -9,6 +9,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 |-----------------------|-------------------------------------|:--------:|:-----------:|:---------------:|
 | Prompt                | **starship** (`shared/starship.toml`)| ✅       | 🟡 manual PS1| ✅ (newline fix 2026-10-12) |
 | Terminal emulator     | **WezTerm** (`shared/wezterm.lua`); Alacritty parked in `legacy/alacritty/` 2026-10-18 | ✅ WezTerm | 📝 (to decide) | ✅ WezTerm |
+| Open a terminal: `Ctrl+Alt+T` | Ubuntu: WezTerm becomes the default (`install-default-terminal.sh`); Windows: hotkey on the WezTerm Start-menu shortcut (`install.ps1 -WezTerm`) | ✅ (not in `keys` yet) | 📝 | ✅ (2026-10-18) |
 | Font                  | FiraCode Nerd Font                   | ✅       | 📝          | ✅              |
 | `ls` w/ icons         | **eza** — `l` `la` `lss`             | ✅       | 🟡 partial  | ✅              |
 | `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | ✅ (seen 2026-10-18) |

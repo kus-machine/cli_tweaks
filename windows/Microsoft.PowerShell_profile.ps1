@@ -460,6 +460,7 @@ function global:cli_tweaks_banner {
         "Ctrl+T Ctrl+R Alt+C`tfzf: file · history · cd",
         "Ctrl+B y`tcopy last command output",
         "F1  ·  tldr CMD`texamples for a command",
+        "Ctrl+Alt+T`tWezTerm from anywhere",
         "keys  Ctrl+B ?`tall commands & hotkeys"
     )
 

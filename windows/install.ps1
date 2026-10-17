@@ -403,6 +403,11 @@ try {
         $sc.TargetPath       = Join-Path $wzDir 'wezterm-gui.exe'
         $sc.WorkingDirectory = $HOME
         $sc.Description      = 'WezTerm (cli_tweaks)'
+        # Ctrl+Alt+T opens a WezTerm window from anywhere, as on Ubuntu.
+        # Explorer serves the "Shortcut key" of Start menu shortcuts itself:
+        # nothing else to install, and it follows the physical key, so it
+        # works on the Ukrainian layout too. Goes away with the shortcut.
+        $sc.Hotkey           = 'CTRL+ALT+T'
         $sc.Save()
         Write-Host "  installed $lnk" -ForegroundColor Green
 

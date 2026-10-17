@@ -74,6 +74,7 @@ F1	examples for the command you are typing (tldr)
 	git commit + F1 -> git-commit · no page? PowerShell help
 
 # WINDOW
+Ctrl+Alt+T	open a new WezTerm window, from anywhere in Windows
 Ctrl+B o	opacity 0.9 <-> solid
 Ctrl+=  Ctrl+-  Ctrl+0	font size bigger / smaller / reset (Ctrl+wheel too)
 Alt+Enter	full screen
