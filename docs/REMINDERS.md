@@ -43,6 +43,20 @@ repeat-safe, empty dirs pruned, pristine copy reused after `--full`). Left:_
    `~/.tmux.conf.bak.20260608_154748` (owned by root, 756 bytes). Decide, then
    copy it into the pristine store and fix the manifest entry by hand.
 
+5. **`alacritty.toml` cannot come back without changing the default terminal.**
+   _Added 2026-10-18 (laptop)._ `uninstall.sh --configs` restores the original
+   `~/.config/alacritty/alacritty.toml`, but only `install.sh --alacritty`
+   deploys ours again — and that also makes Alacritty the Ctrl+Alt+T terminal.
+   On a WezTerm machine that still uses Alacritty there is no clean way back.
+   Fix idea: `--configs` (or `--wezterm`) also deploys the config of the other
+   terminal when that terminal is installed.
+
+6. **`install-wezterm.sh` never repairs a missing apt source.**
+   _Added 2026-10-18._ With `wezterm-nightly` installed it skips the
+   repository step, so a `wezterm.list` disabled by a release upgrade (see
+   CLAUDE.md) stays off. Fix idea: if the manifest records the source as ours
+   and it is missing, put it back (and drop a `wezterm.list.distUpgrade`).
+
 ---
 
 ## 2. Windows: validate branch `wezterm_dev`, then merge
@@ -96,19 +110,22 @@ prompt `∙`, not `ÔêÖ`). Left: the owner's visual checklist
    PARITY.md updated, but the branch also carries the Ubuntu half
    (`490d8ba`, `94419cc`, `4e6b3da`: WezTerm as an install option + default
    terminal / Files menu, the `uninstall.sh` rewrite, live history sharing),
-   and the uninstaller rewrite was only sandbox-tested (fake `$HOME`,
-   `--dry-run`). First, **on Ubuntu, for real**:
-   - `./install.sh --configs --wezterm`, then open WezTerm (title bar under
-     GNOME Wayland, `Ctrl+Alt+T` and Files → "Open in" start WezTerm, banner,
-     `keys` / `Ctrl+B ?`, Ctrl+R / Alt+C on the Ukrainian layout);
-   - `./uninstall.sh --configs` twice (2nd run a no-op), then `--configs`
-     install again; `./uninstall.sh --full --dry-run` and read the package list;
-   - mind item 1 first: on SF-WS1181 `--configs` would DELETE `~/.bash_aliases`
-     and `~/.tmux.conf` (item 1.4); the laptop still has the old pre-manifest
-     deploy, so `deploy_file` will take `~/.bashrc.bak` as the original (1.1 —
-     correct there).
-   Then merge `wezterm_dev` into `main` (fast-forward) and update PARITY.md's
-   Ubuntu cells (WezTerm "not eyeballed", uninstall "sandbox-tested only").
+   so it waits for the Ubuntu run.
+   **Progress 2026-10-18 (on the laptop):** the uninstall half is DONE —
+   `./uninstall.sh --configs` ×3 (repeats change nothing), then
+   `./install.sh --configs --starship --wezterm`: files and manifest
+   identical to before (checksums), except `alacritty.toml`, which stays the
+   original (item 1.5). `__pycache__` leftover of the Files
+   extension fixed in `uninstall.sh`. `--full --dry-run` read: it would take
+   xclip zoxide bat tealdeer wezterm-nightly python3-nautilus
+   gir1.2-nautilus-4.0 and nothing else; not run for real. PARITY.md updated.
+   Left:
+   - **Owner, in WezTerm on Ubuntu:** title bar under GNOME Wayland,
+     `Ctrl+Alt+T` and Files → "Open in WezTerm" (run `nautilus -q` once
+     first), banner, `keys` / `Ctrl+B ?`, Ctrl+R / Alt+C on the Ukrainian
+     layout. Then set PARITY.md's Ubuntu WezTerm cell to ✅.
+   - Merge `wezterm_dev` into `main` (fast-forward).
+   - SF-WS1181 is NOT safe for `--configs` until item 1.4 is fixed.
 5. Then delete `C:\Users\pawla\cli_tweaks_cleanup_20261011_224657\`
    (quarantine of the old install; `cleanup.log` maps every file) — nothing
    in it is needed once the new install works.

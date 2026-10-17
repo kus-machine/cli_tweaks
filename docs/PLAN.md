@@ -279,11 +279,10 @@ nushell / pwsh everywhere (rejected: new language / foreign on Unix).
   end-to-end** — that is step 0 below / docs/REMINDERS.md.
 
 ### 📝 Next up (priority order)
-0. **Validate branch `wezterm_dev` on Windows**: `install.ps1 -All` for real
-   (from Windows PowerShell 5.1), live check against windows/README.md,
-   `uninstall.ps1 -Full -WhatIf`, then merge to main. On the Ubuntu laptop:
-   finish the interrupted `--packages` (xclip is missing), then `--configs`
-   and check the pristine store holds `~/.bashrc.bak` / `~/.bash_aliases.bak`.
+0. **Merge branch `wezterm_dev`.** Windows validated 2026-10-18; on the
+   Ubuntu laptop the uninstall/reinstall cycle passed the same day. Left: the
+   owner's look at WezTerm on Ubuntu, then fast-forward `main`
+   (docs/REMINDERS.md item 2.4).
 1. **Ubuntu installer safety fixes** — the uninstaller half was done
    2026-10-12 (apt simulation, record-before-act, repeat-safe); the install
    half is still in docs/REMINDERS.md.

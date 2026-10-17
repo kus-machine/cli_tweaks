@@ -115,10 +115,11 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   - **Ubuntu 24** (`SF-WS1181`): full coreutils, normal bash. Ubuntu changes
     can be tested here for real.
   - **Ubuntu 24.04 laptop** (`apavlyuk-IdeaPad-Slim-5-14IRH10`, Wayland): also
-    real-testable, but no pwsh/zsh. As of 2026-10-05 it still runs an OLD
-    pre-manifest deploy (`~/.bashrc.bak` and `~/.bash_aliases.bak` are the
-    originals), ble.sh is not installed, and xclip is missing — a
-    `--packages` run was interrupted.
+    real-testable, but no pwsh/zsh. Since 2026-10-04 it has a manifest; its
+    pristine store holds the old pre-manifest originals (`~/.bashrc.bak`,
+    `~/.bash_aliases.bak`). ble.sh, xclip and WezTerm (as the default
+    terminal) are installed. `sudo` asks for a password, so the Bash tool
+    cannot run steps that need it — the owner runs those.
   - **Windows 11**: the **Bash tool there lacks coreutils** (`find`, `mkdir`,
     `echo` fail) — use PowerShell or the dedicated file tools for filesystem
     work, not `bash -c`.
@@ -226,6 +227,13 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   that on its own). It also sets `enable_wayland = false`: on GNOME Wayland
   the nightly drew no title bar at all (no _ □ X, no resize); through
   XWayland GNOME draws the normal one. `Ctrl+B ?` runs `keys --stay` from a plain `bash -c`.
+- **A release upgrade switches the WezTerm apt repo off.** `do-release-upgrade`
+  (even one that aborts, as on the laptop 2026-10-17) renames
+  `/etc/apt/sources.list.d/wezterm.list` to `wezterm.list.distUpgrade`, and
+  `wezterm-nightly` silently stops updating. `install.sh --wezterm` does NOT
+  repair it: with the package installed it skips the repository step. Move
+  the file back by hand (`sudo mv … .distUpgrade … .list`); `apt-cache
+  policy wezterm-nightly` should list `apt.fury.io`.
 - **`uninstall.sh --full` never runs `apt-get autoremove`** and never removes
   a package blindly: each of ours is simulated first (`apt-get -s`, no root
   needed) and kept if it would take a non-ours package along; only orphans

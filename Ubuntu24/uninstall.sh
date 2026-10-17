@@ -150,6 +150,20 @@ while IFS=$'\t' read -r path pristine; do
             echo "  remove (had no original): $path"
             run rm -f "$path"
         fi
+        # A Python file (the Files-menu extension) leaves its bytecode behind:
+        # Nautilus compiles it into __pycache__/ on first load, and that
+        # leftover would keep the whole directory chain from being pruned.
+        if [[ "$path" == *.py ]]; then
+            pycache="$(dirname -- "$path")/__pycache__"
+            shopt -s nullglob
+            pycs=("$pycache/$(basename -- "$path" .py)".*.pyc)
+            shopt -u nullglob
+            if [[ ${#pycs[@]} -gt 0 ]]; then
+                echo "  remove bytecode: ${pycs[*]}"
+                run rm -f "${pycs[@]}"
+            fi
+            file_dirs+=("$pycache")
+        fi
     elif [[ -f "$pristine" ]]; then
         echo "  restore: $pristine -> $path"
         # The parent may be gone (you deleted ~/.config/foo by hand); without
