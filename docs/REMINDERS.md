@@ -63,7 +63,10 @@ both WezTerm dirs are now `preexisting:false` (ours); `uninstall.ps1 -Full
 and `Programs\WezTerm`, keeping PowerShell 7. Two profile bugs found while
 eyeballing and fixed (uncommitted): console not forced to UTF-8 (Ukrainian
 typed as `?????`) and zoxide's hook killed by starship's prompt (`z` never
-matched) — see the new CLAUDE.md gotchas. Left: the owner's visual checklist
+matched) — see the new CLAUDE.md gotchas. **2026-10-18:** Ctrl/Alt+letter
+keys fixed for both layouts (`__ct_twin_keys`, verified in WezTerm: Ctrl+D,
+Ctrl+R, Ctrl+T, Alt+C) and the stale starship cache rebuilt (continuation
+prompt `∙`, not `ÔêÖ`). Left: the owner's visual checklist
 (step 2), the real teardown/rebuild (step 3 below), then merge.
 
 0. ✅ DONE. Trial traces removed (`cli_tweaks_trial`, `~\.local\share\wezterm`,
@@ -80,10 +83,32 @@ matched) — see the new CLAUDE.md gotchas. Left: the owner's visual checklist
    jumps after a couple of `cd`s**, F1, `alert`, `less` keys on the Ukrainian
    layout. `$env:CLI_TWEAKS_TIMING=1; pwsh` (was ~0.47 s here, starship ~0.37 s
    of it — over the ~0.2 s target, worth a look).
-3. `-WhatIf` done. Still to do for real: `./uninstall.ps1 -Cosmetic` twice,
-   then `./install.ps1 -Configs` again (manifest bookkeeping across re-runs).
-4. If all good: merge `wezterm_dev` into `main`, update PARITY.md's
-   "not eyeballed" cells.
+3. ✅ DONE 2026-10-18: `uninstall.ps1 -Cosmetic` twice (2nd run a no-op,
+   manifest unchanged), then `install.ps1 -Configs -Starship -WezTerm
+   -SetDefaultTerminal` (`-Configs` alone does not bring back starship.toml,
+   wezterm.lua or the WezTerm Start-menu shortcut). Manifest packages /
+   modules / fonts / dirs identical before and after; the 8 files back.
+   Small leftovers, not fixed: `-Cosmetic` removes the WezTerm Start-menu
+   shortcut (an install artifact); every `-SetDefaultTerminal` run piles up
+   another `settings.json.bak.<ts>`; `-Starship` prints "already present -
+   will not be removed" although the manifest correctly keeps it as ours.
+4. **Do NOT merge yet (owner, 2026-10-18).** Windows is validated and
+   PARITY.md updated, but the branch also carries the Ubuntu half
+   (`490d8ba`, `94419cc`, `4e6b3da`: WezTerm as an install option + default
+   terminal / Files menu, the `uninstall.sh` rewrite, live history sharing),
+   and the uninstaller rewrite was only sandbox-tested (fake `$HOME`,
+   `--dry-run`). First, **on Ubuntu, for real**:
+   - `./install.sh --configs --wezterm`, then open WezTerm (title bar under
+     GNOME Wayland, `Ctrl+Alt+T` and Files → "Open in" start WezTerm, banner,
+     `keys` / `Ctrl+B ?`, Ctrl+R / Alt+C on the Ukrainian layout);
+   - `./uninstall.sh --configs` twice (2nd run a no-op), then `--configs`
+     install again; `./uninstall.sh --full --dry-run` and read the package list;
+   - mind item 1 first: on SF-WS1181 `--configs` would DELETE `~/.bash_aliases`
+     and `~/.tmux.conf` (item 1.4); the laptop still has the old pre-manifest
+     deploy, so `deploy_file` will take `~/.bashrc.bak` as the original (1.1 —
+     correct there).
+   Then merge `wezterm_dev` into `main` (fast-forward) and update PARITY.md's
+   Ubuntu cells (WezTerm "not eyeballed", uninstall "sandbox-tested only").
 5. Then delete `C:\Users\pawla\cli_tweaks_cleanup_20261011_224657\`
    (quarantine of the old install; `cleanup.log` maps every file) — nothing
    in it is needed once the new install works.

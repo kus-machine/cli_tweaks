@@ -11,11 +11,11 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Terminal emulator     | **alacritty** (`shared/alacritty.toml`) or **WezTerm** (`shared/wezterm.lua`); Ubuntu: chosen at install (`--alacritty` / `--wezterm`) | ✅ Alacritty · 🟡 WezTerm built, not eyeballed | 📝 | ✅ WezTerm |
 | Font                  | FiraCode Nerd Font                   | ✅       | 📝          | ✅              |
 | `ls` w/ icons         | **eza** — `l` `la` `lss`             | ✅       | 🟡 partial  | ✅              |
-| `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | 🟡 untested |
+| `tree`                | eza `tree [depth]` + `tree1`..`tree9` | ✅       | 🟡 blind, untested | ✅ (seen 2026-10-18) |
 | find                  | `fin` — fd from the current dir      | ✅       | 📝          | ✅              |
-| Fuzzy search          | **fzf** + fd (Ctrl+T/R, Alt+C)       | ✅       | 🟡 no fd cfg| 🟡 PSFzf, lazy-loaded; not eyeballed |
-| Command examples      | **tldr** (tealdeer) + `F1` while typing | ✅ | 📝 | 🟡 built, F1 not eyeballed |
-| fzf previews          | bat file / eza tree / full command, `Ctrl+/` toggles | ✅ | 📝 | 🟡 built (cmd.exe syntax), not eyeballed |
+| Fuzzy search          | **fzf** + fd (Ctrl+T/R, Alt+C)       | ✅       | 🟡 no fd cfg| ✅ PSFzf, lazy-loaded; both keyboard layouts (2026-10-18) |
+| Command examples      | **tldr** (tealdeer) + `F1` while typing | ✅ | 📝 | ✅ (F1 seen 2026-10-18) |
+| fzf previews          | bat file / eza tree / full command, `Ctrl+/` toggles | ✅ | 📝 | ✅ (cmd.exe syntax; seen 2026-10-18) |
 | Inline autosuggestion | grey text as you type                | ✅ ble.sh| ✅ zsh-autosuggestions | ✅ PSReadLine |
 | Input-line colours    | Tokyo Night faces (`Ubuntu24/configs/.blerc`) | ✅ | 📝          | 📝              |
 | Smart cd              | **zoxide** (`z`, `zi`)               | ✅       | 🟡 *not wired* | ✅          |
@@ -26,7 +26,7 @@ Legend: ✅ done · 🟡 partial / drifted · 📝 planned · 🚫 not applicabl
 | Copy to clipboard     | tmux copy-pipe + `Alt+W` on the line | ✅ xclip | 🟡 pbcopy, untested | ✅ WezTerm: select = copy, Ctrl+C/V, Ctrl+B y (no Alt+W) |
 | Word-jump keys        | Alt/Ctrl + arrows                    | ✅       | 🟡 blind, untested | ✅       |
 | Word-delete keys      | Ctrl/Alt+Backspace ⌫word, Ctrl+Del word⌦ | ✅ ble.sh + readline fallback | 🟡 blind, untested | ✅ PSReadLine, pinned |
-| Uninstall / revert    | manifest-driven uninstaller          | ✅       | 📝          | 🟡 rewritten 2026-10-12, not run yet |
+| Uninstall / revert    | manifest-driven uninstaller          | 🟡 2026-10-12 rewrite sandbox-tested only (fake `$HOME`, `--dry-run`) | 📝          | ✅ `-Cosmetic` ×2 + reinstall run for real 2026-10-18 |
 | Startup banner + `keys` | cat + key macros on a new terminal; `keys` = full cheatsheet | ✅ | 📝 | ✅ (`windows/keys.txt`, Ctrl+B ?) |
 | Done notification     | `alert` after a long command       | ✅ notify-send | 📝 | 🟡 OSC 777 → toast, not eyeballed |
 | `less` keys on the UA layout | `shared/lesskey` (d = в, q = й …) | 📝 | 📝 | ✅ |
@@ -44,6 +44,14 @@ Ukrainian layout. The tools were then re-added (starship fix, fzf previews,
 tldr + F1, alert) and checked programmatically only — rows marked "not
 eyeballed". `install.ps1`/`uninstall.ps1` were rewritten and parse under 5.1
 and 7, but have not been run end-to-end (docs/REMINDERS.md).
+
+**Windows, 2026-10-18:** installed for real from the repo and eyeballed in
+WezTerm by the owner: banner, starship, fzf keys + previews, F1, `tree`, `z`,
+Ukrainian letters, Ctrl+D / Ctrl+R / Ctrl+T / Alt+C on both keyboard layouts
+(fixed that day — see `__ct_twin_keys` in CLAUDE.md). `uninstall.ps1
+-Cosmetic` twice (the 2nd run a no-op) and a reinstall left the manifest
+consistent. Still not eyeballed: `alert`. The Ubuntu half of the branch
+(WezTerm option, uninstaller rewrite) has not been run for real on Ubuntu.
 
 SSH config and a Raspberry Pi / remote profile are planned separately — see
 [PLAN.md](PLAN.md).
