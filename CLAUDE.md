@@ -223,7 +223,9 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   marks itself with `blehook PRECMD`/`PREEXEC` (before `ble-attach`). On Linux,
   `wezterm.lua` also sends every unbound Ctrl/Alt+letter by its physical key,
   so the Ukrainian layout still gets `Ctrl+R`, `Alt+C` (Windows' console does
-  that on its own). `Ctrl+B ?` runs `keys --stay` from a plain `bash -c`.
+  that on its own). It also sets `enable_wayland = false`: on GNOME Wayland
+  the nightly drew no title bar at all (no _ □ X, no resize); through
+  XWayland GNOME draws the normal one. `Ctrl+B ?` runs `keys --stay` from a plain `bash -c`.
 - **`uninstall.sh --full` never runs `apt-get autoremove`** and never removes
   a package blindly: each of ours is simulated first (`apt-get -s`, no root
   needed) and kept if it would take a non-ours package along; only orphans

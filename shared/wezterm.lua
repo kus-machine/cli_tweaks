@@ -64,6 +64,14 @@ else
     { label = 'tmux (session main)', args = { 'tmux', 'new-session', '-A', '-s', 'main' } },
     { label = 'bash without ble.sh / cli_tweaks', args = { 'bash', '--norc', '--noprofile' } },
   }
+
+  -- GNOME on Wayland: run as an X11 window (through XWayland). GNOME's
+  -- compositor never draws title bars for native Wayland apps -- each app must
+  -- draw its own -- and the WezTerm nightly draws none there: no _ □ X, no
+  -- resize border (seen on the laptop, 2026-10-17). As an X11 window GNOME
+  -- gives it the normal title bar. Costs nothing here: fractional scaling is
+  -- off, so XWayland is not blurry. No effect on an X11 session.
+  config.enable_wayland = false
 end
 
 
@@ -98,7 +106,8 @@ config.visual_bell = {
 -- `alert` -> Windows toast / Ubuntu notify-send popup, even while focused.
 config.notification_handling = 'AlwaysShow'
 
--- The normal Windows title bar with the normal _ □ X buttons, tabs right
+-- The normal Windows / GNOME title bar with the normal _ □ X buttons (on GNOME
+-- Wayland that needs enable_wayland = false, see Shell above), tabs right
 -- under it. (WezTerm can also draw the buttons inside the tab bar --
 -- 'INTEGRATED_BUTTONS|RESIZE' -- but with a Nerd Font they came out as a dot
 -- and a dash.) Plain ("retro") tab bar so it is coloured exactly like tmux's.
