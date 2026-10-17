@@ -88,7 +88,7 @@ _Last updated: 2026-10-05 (zsh trial planned)._
   (ble.sh's default `fg=238,bg=254` is a light block, unreadable on Tokyo Night).
 - ble.sh's default palette was rejected on sight (red builtins, blue keywords,
   hot-pink globs, white-on-red error blocks — "windows98"). Replaced with a
-  **Tokyo Night palette** matching `shared/alacritty.toml`, in a new
+  **Tokyo Night palette** matching the terminal's (WezTerm's `Tokyo Night`), in a new
   `Ubuntu24/configs/.blerc` → `~/.blerc` (ble.sh's own init file, so all
   `bleopt`/`ble-face` lines moved out of `.bashrc`). Hue only: no bold, no
   underline, no background blocks; commands blue/cyan, own aliases+functions
@@ -137,8 +137,8 @@ _Last updated: 2026-10-05 (zsh trial planned)._
   own bindings route those through OSC 52 too). Every binding is duplicated
   into `copy-mode` **and** `copy-mode-vi`: tmux only uses the -vi table when
   `mode-keys` is vi, and ours is emacs. `xclip` added to `--packages`.
-- **Alacritty `selection.save_to_clipboard = true`** in `shared/alacritty.toml`
-  so a mouse selection needs no `Ctrl+Shift+C`.
+- **Alacritty `selection.save_to_clipboard = true`** so a mouse selection
+  needs no `Ctrl+Shift+C` (Alacritty is in `legacy/alacritty/` since 2026-10-18).
 - **`Alt+W` copies the command line** (`blerc/copy-to-clipboard`): selection if
   there is one, whole line otherwise, into both the system clipboard and
   ble.sh's kill-ring. ble.sh's stock copy only fills the kill-ring, so a
