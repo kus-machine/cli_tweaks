@@ -77,6 +77,11 @@ Windows setup took ~5 s). Check with `$env:CLI_TWEAKS_TIMING=1; pwsh`.
   alone; pass `-SetWindowsDefaultTerminalApp` to point it at Windows Terminal.
 - The **"Open in PowerShell 7 here"** context menu is a Windows/PowerShell
   feature, not something this repo installs.
+- **`Ctrl+Alt+T` → WezTerm (recommended, by hand):** PowerToys → Keyboard
+  Manager (enable it) → Remap a shortcut → `Ctrl+Alt+T` → **Run Program**,
+  App = the full path `C:\Users\<you>\AppData\Local\Programs\WezTerm\wezterm-gui.exe`,
+  If running: **Start another**, Target app empty. Instant. Not a "Shortcut key" on the Start-menu
+  shortcut: Explorer waits a fixed ~3 s before it starts the program.
 
 ## Uninstall
 

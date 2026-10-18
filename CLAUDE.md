@@ -322,6 +322,13 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   one build's hash while its URL serves the newest nightly ("Installer hash
   does not match"). `install.ps1 -WezTerm` unpacks the official nightly zip to
   `%LOCALAPPDATA%\Programs\WezTerm` + a Start menu shortcut instead.
+- **WezTerm start on Windows** (measured 2026-10-18): ~0.6 s to a window is
+  WezTerm itself (renderer / GPU settings change nothing); `wsl_domains = {}`
+  in `wezterm.lua` saves the ~0.25 s it spent asking wsl.exe for distros on
+  every window — keep it, WSL is a static `launch_menu` entry. **Don't give
+  the Start-menu shortcut a `Ctrl+Alt+T` "Shortcut key"**: Explorer waits a
+  fixed ~3 s before starting the program. Ctrl+Alt+T is a by-hand PowerToys
+  Keyboard Manager remap (`windows/README.md`).
 - A tool that cannot reach the network with **os error 10013** (e.g.
   `tldr --update`) is blocked by the owner's firewall, not broken.
 - Package manager on Windows: **winget** (choco also present; scoop absent).
