@@ -68,7 +68,13 @@ on the Ukrainian layout too; `less` (git log, `keys`) gets Ukrainian twins of
 its keys from `shared/lesskey`.
 
 **Startup time:** ~0.2 s for the profile on top of pwsh's ~0.2 s (the first
-Windows setup took ~5 s). Check with `$env:CLI_TWEAKS_TIMING=1; pwsh`.
+Windows setup took ~5 s). Check with `$env:CLI_TWEAKS_TIMING=1; pwsh`: it
+prints the whole chain — terminal → pwsh → profile → first prompt. A WezTerm
+window takes ~0.6 s on its own. The **first** start after a reboot (or after
+a Defender update) can take several seconds: Windows Defender checks the
+unsigned `wezterm-gui.exe` before it runs. That is expected; a Defender file
+exclusion for it would remove the wait, at the cost of that file going
+unscanned.
 
 ### Manual system settings (intentionally not fully automated)
 

@@ -57,8 +57,12 @@ _`wezterm_dev` was validated on Windows and Ubuntu and merged into `main` on
 2026-10-18 (git history has the full record). Do these **on the Windows box**._
 
 1. **Not eyeballed yet:** `alert` (OSC 777 -> toast; PARITY.md).
-2. **pwsh startup is over budget:** `$env:CLI_TWEAKS_TIMING=1; pwsh` showed
-   ~0.47 s, starship ~0.37 s of it, against the ~0.2 s target.
+2. **pwsh startup, slightly over budget (low priority).** Measured after a
+   fresh boot, 2026-10-18 (`CLI_TWEAKS_TIMING` now shows the whole chain):
+   pwsh -> profile 0.33 s, profile 0.22 s (env+PATH 59 ms, zoxide 36,
+   PSReadLine 29, banner 28, layout twins 27, starship 23), first prompt
+   0.07 s — ~0.3 s in a git repo. The slow COLD WezTerm start is Windows
+   Defender, not this (CLAUDE.md); the owner declined an exclusion.
 3. **Small installer leftovers:** `uninstall.ps1 -Cosmetic` removes the
    WezTerm Start-menu shortcut (an install artifact); every
    `-SetDefaultTerminal` run piles up another `settings.json.bak.<ts>`;

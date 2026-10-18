@@ -329,6 +329,17 @@ When you touch one, touch the others (or explicitly note the gap in PARITY.md):
   the Start-menu shortcut a `Ctrl+Alt+T` "Shortcut key"**: Explorer waits a
   fixed ~3 s before starting the program. Ctrl+Alt+T is a by-hand PowerToys
   Keyboard Manager remap (`windows/README.md`).
+- **A slow COLD WezTerm start on Windows is Windows Defender**, not WezTerm,
+  pwsh or the profile (2026-10-18). The nightly `wezterm-gui.exe` is unsigned
+  (68 MB); Defender re-checks it after a boot or a signature update, and a
+  launch waits for the verdict — a never-seen copy took 2.2 s vs 0.6 s,
+  the first launch after a boot 13 s before WezTerm even ran, while pwsh +
+  profile + first prompt stayed ~0.6 s (`CLI_TWEAKS_TIMING` shows that chain).
+  A second launch during the wait blocks on the same verdict. Ruled out:
+  stale `gui-sock-*` files, the AMD iGPU (WezTerm renders with OpenGL on the
+  RTX), renderer settings. The fix would be a Defender exclusion for
+  `wezterm-gui.exe` — the owner declined it; don't add one or suggest it again
+  unasked.
 - A tool that cannot reach the network with **os error 10013** (e.g.
   `tldr --update`) is blocked by the owner's firewall, not broken.
 - Package manager on Windows: **winget** (choco also present; scoop absent).

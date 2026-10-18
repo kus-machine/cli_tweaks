@@ -39,6 +39,7 @@ if (-not [Console]::IsOutputRedirected) {
 # Startup timing (CLI_TWEAKS_TIMING=1 prints the table at the end)
 # ---------------------------------------------------------------------------
 $global:__ct_sw    = [Diagnostics.Stopwatch]::StartNew()
+$global:__ct_t0    = [DateTime]::Now                 # when this file started
 $global:__ct_marks = [System.Collections.Generic.List[object]]::new()
 function global:__ct_mark([string]$Block) {
     $global:__ct_marks.Add([pscustomobject]@{ Block = $Block; Ms = [int]$global:__ct_sw.Elapsed.TotalMilliseconds })
@@ -601,6 +602,31 @@ __ct_mark 'banner'
 if ($env:CLI_TWEAKS_TIMING -eq '1') {
     $__total = ($global:__ct_marks | Measure-Object Ms -Sum).Sum
     $global:__ct_marks | Format-Table -AutoSize | Out-Host
-    Write-Host "profile total: $__total ms  (pwsh itself starts before this)"
+    # The whole chain, not just this file: the terminal (parent process)
+    # starts -> pwsh starts -> this profile -> the first prompt. A slow COLD
+    # start (after a long break) shows which link it is.
+    $__me     = Get-Process -Id $PID
+    $__parent = try { $__me.Parent } catch { $null }
+    if ($__parent) {
+        Write-Host ("{0} started -> pwsh started: {1} ms" -f $__parent.Name,
+            [int]($__me.StartTime - $__parent.StartTime).TotalMilliseconds)
+        $global:__ct_term_start = $__parent.StartTime
+    }
+    Write-Host ("pwsh started -> profile began: {0} ms" -f [int]($global:__ct_t0 - $__me.StartTime).TotalMilliseconds)
+    Write-Host "profile total: $__total ms"
+    # First prompt (starship runs its exe here): time it once, then put the
+    # real prompt function back -- it reads $?, which a wrapper would reset.
+    $global:__ct_prompt_inner = ${function:prompt}
+    function global:prompt {
+        $sw = [Diagnostics.Stopwatch]::StartNew()
+        $p  = & $global:__ct_prompt_inner
+        $msg = "first prompt: $([int]$sw.Elapsed.TotalMilliseconds) ms"
+        if ($global:__ct_term_start) {
+            $msg += " · terminal start -> prompt: $([int]([DateTime]::Now - $global:__ct_term_start).TotalMilliseconds) ms"
+        }
+        Write-Host $msg
+        Set-Item function:global:prompt $global:__ct_prompt_inner
+        $p
+    }
 }
-Remove-Variable __n, __ex, __pv_file, __pv_dir, __total -ErrorAction Ignore
+Remove-Variable __n, __ex, __pv_file, __pv_dir, __total, __me, __parent -ErrorAction Ignore
